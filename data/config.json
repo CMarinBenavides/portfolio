@@ -1,0 +1,23 @@
+{
+  "name": "Lyda Viviana Mejia Hernandez",
+  "tagline": "Modelo · Moda · Editorial",
+  "location": "Bogota, Colombia",
+  "bio": "Modelo de moda y editorial. He trabajado en campañas, pasarelas y sesiones fotográficas, siempre buscando contar una historia a través de cada imagen.",
+  "email": "contacto@ejemplo.com",
+  "github": "https://github.com/CMarinBenavides/portfolio",
+  "stats": {
+    "Altura": "175 cm",
+    "Busto": "84 cm",
+    "Cintura": "61 cm",
+    "Cadera": "90 cm",
+    "Zapato": "38",
+    "Cabello": "Castaño",
+    "Ojos": "Marrones"
+  },
+  "social": [
+    { "name": "Instagram", "url": "https://instagram.com/tu_usuario" },
+    { "name": "Facebook", "url": "https://facebook.com/tu_usuario" },
+    { "name": "X", "url": "https://x.com/tu_usuario" },
+    { "name": "TikTok", "url": "https://tiktok.com/@tu_usuario" }
+  ]
+}

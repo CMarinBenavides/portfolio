@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Portafolio Lyda</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <nav class="topbar">
+    <a href="#top" class="monogram" id="monogram"></a>
+    <div class="links">
+      <a href="#portfolio">Portfolio</a>
+      <a href="#about">Sobre mí</a>
+      <a href="#contact">Contacto</a>
+      <button id="admin-btn" class="link-btn">Editar</button>
+    </div>
+  </nav>
+
+  <header class="hero" id="top">
+    <div class="hero-text">
+      <p id="tagline" class="eyebrow"></p>
+      <h1 id="name">Portafolio Lyda</h1>
+      <p id="location" class="location"></p>
+      <a href="#portfolio" class="scroll-cue">Ver portfolio</a>
+    </div>
+    <div class="hero-image" id="hero-image">
+      <span class="placeholder">Tu foto principal aparecerá aquí</span>
+    </div>
+  </header>
+
+  <section class="stats" aria-label="Medidas">
+    <dl id="stats"></dl>
+  </section>
+
+  <main id="portfolio">
+    <div class="section-head">
+      <span class="section-num">01</span>
+      <h2>Portfolio</h2>
+    </div>
+
+    <form id="upload-form" class="upload hidden">
+      <label class="dropzone" id="dropzone">
+        <input type="file" name="image" accept="image/jpeg,image/png,image/webp,image/gif" required>
+        <img id="preview" class="hidden" alt="">
+        <span id="drop-text">Arrastra una fotografía aquí<br>o haz clic para elegirla</span>
+      </label>
+      <div class="fields">
+        <p class="eyebrow">Nueva fotografía</p>
+        <input type="text" name="title" placeholder="Título · ej. Vogue Editorial" maxlength="100">
+        <textarea name="description" placeholder="Descripción · fotógrafo, marca, año…" maxlength="500" rows="3"></textarea>
+        <button type="submit" class="btn">Subir</button>
+        <p id="upload-msg" class="msg" role="status"></p>
+      </div>
+    </form>
+
+    <p id="empty" class="empty hidden">Aún no hay fotografías. Pulsa <em>Editar</em> para subir la primera.</p>
+    <section id="gallery" class="gallery"></section>
+  </main>
+
+  <section class="about" id="about">
+    <div class="section-head">
+      <span class="section-num">02</span>
+      <h2>Sobre mí</h2>
+    </div>
+    <p id="bio" class="bio"></p>
+  </section>
+
+  <section class="contact" id="contact">
+    <div class="section-head">
+      <span class="section-num">03</span>
+      <h2>Contacto</h2>
+    </div>
+    <a id="email" class="email hidden"></a>
+    <nav id="social" class="social" aria-label="Redes sociales"></nav>
+  </section>
+
+  <dialog id="lightbox" class="lightbox">
+    <button class="close" aria-label="Cerrar">×</button>
+    <button class="nav prev" aria-label="Anterior">‹</button>
+    <button class="nav next" aria-label="Siguiente">›</button>
+    <figure>
+      <img id="lightbox-img" alt="">
+      <figcaption>
+        <h3 id="lightbox-title"></h3>
+        <p id="lightbox-desc"></p>
+      </figcaption>
+    </figure>
+  </dialog>
+
+  <footer>© <span id="year"></span> <span id="footer-name"></span></footer>
+
+  <a id="github-link" class="github-fab hidden" target="_blank" rel="noopener noreferrer"
+     aria-label="Ver el código de este proyecto en GitHub" title="Ver el proyecto en GitHub">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 .5a11.5 11.5 0 00-3.6 22.4c.6.1.8-.3.8-.6v-2c-3.2.7-3.9-1.5-3.9-1.5-.5-1.3-1.3-1.7-1.3-1.7-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.8 1.3 3.5 1 .1-.8.4-1.3.8-1.6-2.6-.3-5.3-1.3-5.3-5.7 0-1.3.5-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.2 1.2a11 11 0 015.8 0c2.2-1.5 3.2-1.2 3.2-1.2.6 1.6.2 2.8.1 3.1.8.8 1.2 1.8 1.2 3.1 0 4.4-2.7 5.4-5.3 5.7.4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6A11.5 11.5 0 0012 .5z"/></svg>
+  </a>
+
+  <script src="app.js"></script>
+</body>
+</html>
