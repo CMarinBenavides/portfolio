@@ -8,6 +8,13 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
+  <script>
+    // Aplica el tema guardado antes de pintar la página, para evitar un parpadeo.
+    try {
+      const theme = localStorage.getItem('theme');
+      if (theme) document.documentElement.dataset.theme = theme;
+    } catch {}
+  </script>
 </head>
 <body>
   <nav class="topbar">
@@ -16,6 +23,7 @@
       <a href="#portfolio">Portfolio</a>
       <a href="#about">Sobre mí</a>
       <a href="#contact">Contacto</a>
+      <button id="theme-btn" class="link-btn" aria-label="Cambiar tema">Oscuro</button>
       <button id="admin-btn" class="link-btn">Editar</button>
     </div>
   </nav>

@@ -209,6 +209,21 @@ form.addEventListener('submit', async (e) => {
   }
 });
 
+// --- Tema claro / oscuro ---
+// Sin elección guardada se sigue la preferencia del sistema.
+const systemDark = matchMedia('(prefers-color-scheme: dark)');
+const isDark = () => (document.documentElement.dataset.theme || (systemDark.matches ? 'dark' : 'light')) === 'dark';
+const updateThemeBtn = () => ($('#theme-btn').textContent = isDark() ? 'Claro' : 'Oscuro');
+
+$('#theme-btn').addEventListener('click', () => {
+  const theme = isDark() ? 'light' : 'dark';
+  document.documentElement.dataset.theme = theme;
+  try { localStorage.setItem('theme', theme); } catch {}
+  updateThemeBtn();
+});
+systemDark.addEventListener('change', updateThemeBtn);
+updateThemeBtn();
+
 $('#year').textContent = new Date().getFullYear();
 loadConfig();
 setAdmin(adminPassword);

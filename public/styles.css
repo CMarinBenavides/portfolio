@@ -5,9 +5,36 @@
   --muted: #857b70;
   --line: #d6cec3;
   --danger: #a3322a;
+  --shadow: rgba(20, 18, 16, .18);
+  --on-photo: #f5f1eb; /* texto sobre fotos y sobre el visor, igual en ambos temas */
   --serif: 'Cormorant Garamond', Georgia, serif;
   --sans: 'Jost', system-ui, sans-serif;
   --gutter: clamp(16px, 5vw, 64px);
+  color-scheme: light;
+}
+
+/* Modo oscuro: carbón cálido con texto marfil, para mantener el tono editorial. */
+:root[data-theme="dark"] {
+  --bg: #141311;
+  --surface: #1e1c19;
+  --ink: #ece6dc;
+  --muted: #9b9186;
+  --line: #34302b;
+  --danger: #e08a7f;
+  --shadow: rgba(0, 0, 0, .5);
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #141311;
+    --surface: #1e1c19;
+    --ink: #ece6dc;
+    --muted: #9b9186;
+    --line: #34302b;
+    --danger: #e08a7f;
+    --shadow: rgba(0, 0, 0, .5);
+    color-scheme: dark;
+  }
 }
 
 * { box-sizing: border-box; }
@@ -21,6 +48,7 @@ body {
   color: var(--ink);
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
+  transition: background-color .4s, color .4s;
 }
 
 a { color: inherit; }
@@ -172,7 +200,7 @@ main, .about, .contact { max-width: 1400px; margin: 0 auto; padding: 120px var(-
   inset: auto 0 0 0;
   padding: 40px 18px 16px;
   background: linear-gradient(transparent, rgba(20, 18, 16, .6));
-  color: #fff;
+  color: var(--on-photo);
   font-size: .7rem;
   letter-spacing: .28em;
   text-transform: uppercase;
@@ -322,8 +350,8 @@ footer {
   margin: 0;
   padding: 0;
   border: none;
-  background: rgba(20, 18, 16, .96);
-  color: var(--bg);
+  background: rgba(12, 11, 10, .97);
+  color: var(--on-photo);
 }
 .lightbox::backdrop { background: transparent; }
 .lightbox figure {
@@ -344,7 +372,7 @@ footer {
   position: absolute;
   background: none;
   border: none;
-  color: var(--bg);
+  color: var(--on-photo);
   font-family: var(--serif);
   font-weight: 300;
   cursor: pointer;
@@ -371,7 +399,7 @@ footer {
   border-radius: 50%;
   background: var(--ink);
   color: var(--bg);
-  box-shadow: 0 6px 20px rgba(20, 18, 16, .18);
+  box-shadow: 0 6px 20px var(--shadow);
   transition: transform .3s, background .3s, color .3s;
 }
 .github-fab:hover { transform: translateY(-3px); background: var(--bg); color: var(--ink); }
