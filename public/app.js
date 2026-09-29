@@ -60,6 +60,23 @@ function socialLink({ name, url }) {
   return a;
 }
 
+/**
+ * Dibuja el icono de la pestaña del navegador (favicon): un círculo oscuro con
+ * las iniciales en color marfil y letra serif cursiva, como el monograma de la
+ * barra superior. Se crea como imagen SVG dentro de una dirección "data:", así
+ * que no hace falta ningún archivo de imagen aparte.
+ * (El favicon no puede cargar las fuentes de Google, por eso usa Georgia,
+ * una serif que viene instalada en casi todos los sistemas.)
+ */
+function setFavicon(initials) {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+    <circle cx="32" cy="32" r="32" fill="#141210"/>
+    <text x="32" y="41" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif"
+      font-style="italic" font-size="${initials.length > 2 ? 20 : 26}" fill="#f5f1eb">${initials}</text>
+  </svg>`;
+  $('#favicon').href = `data:image/svg+xml,${encodeURIComponent(svg)}`;
+}
+
 // Pide al servidor los datos de data/config.json y los coloca en la página.
 async function loadConfig() {
   const config = await fetch('/api/config').then((r) => r.json());
@@ -71,7 +88,9 @@ async function loadConfig() {
   const half = Math.ceil(words.length / 2);
   const lines = [words.slice(0, half), words.slice(half)].filter((line) => line.length);
   $('#name').replaceChildren(...lines.map((line) => el('span', { text: line.join(' ') })));
-  $('#monogram').textContent = lines.map((line) => line[0][0]).join('');
+  const initials = lines.map((line) => line[0][0]).join('');
+  $('#monogram').textContent = initials;
+  setFavicon(initials);
 
   $('#tagline').textContent = config.tagline || '';
   $('#location').textContent = config.location || '';
