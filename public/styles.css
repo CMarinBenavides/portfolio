@@ -1,3 +1,12 @@
+/*
+  Estilos del portafolio.
+
+  Todos los colores se definen una sola vez como variables (--bg, --ink…) en
+  :root. El modo oscuro solo cambia el valor de esas variables, así que el resto
+  del archivo sirve para los dos temas sin repetir nada.
+*/
+
+/* --- Variables: colores del modo claro, tipografías y márgenes --- */
 :root {
   --bg: #f5f1eb;
   --surface: #ece6dd;
@@ -9,6 +18,7 @@
   --on-photo: #f5f1eb; /* texto sobre fotos y sobre el visor, igual en ambos temas */
   --serif: 'Cormorant Garamond', Georgia, serif;
   --sans: 'Jost', system-ui, sans-serif;
+  /* Margen lateral: 5% del ancho de la pantalla, entre 16px (móvil) y 64px (escritorio). */
   --gutter: clamp(16px, 5vw, 64px);
   color-scheme: light;
 }
@@ -24,6 +34,7 @@
   --shadow: rgba(0, 0, 0, .5);
   color-scheme: dark;
 }
+/* Si el visitante no eligió tema, se usa el oscuro cuando su sistema está en modo oscuro. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #141311;
@@ -38,6 +49,7 @@
 }
 
 * { box-sizing: border-box; }
+/* Desplazamiento suave al pulsar los enlaces de la barra superior. */
 html { scroll-behavior: smooth; }
 
 body {
@@ -74,7 +86,7 @@ a { color: inherit; }
   justify-content: space-between;
   padding: 20px var(--gutter);
   background: color-mix(in srgb, var(--bg) 85%, transparent);
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px); /* efecto de cristal esmerilado sobre el contenido que pasa por detrás */
 }
 .brand { display: flex; align-items: center; gap: 16px; }
 .menu { position: relative; }
@@ -234,10 +246,11 @@ main, .about, .contact { max-width: 1400px; margin: 0 auto; padding: 120px var(-
 }
 
 /* --- Galería --- */
+/* Diseño tipo mosaico: hasta 3 columnas de al menos 300px; las fotos conservan su proporción. */
 .gallery { columns: 3 300px; column-gap: 20px; }
 .card {
   position: relative;
-  break-inside: avoid;
+  break-inside: avoid; /* evita que una foto quede partida entre dos columnas */
   margin: 0 0 20px;
   overflow: hidden;
   cursor: zoom-in;
@@ -317,6 +330,7 @@ main, .about, .contact { max-width: 1400px; margin: 0 auto; padding: 120px var(-
   cursor: pointer;
 }
 .dropzone.dragover { border-color: var(--ink); color: var(--ink); background: var(--surface); }
+/* El selector de archivos real es invisible y cubre toda la zona: así se puede hacer clic o soltar una foto en cualquier punto. */
 .dropzone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
 .dropzone img { max-width: 100%; max-height: 300px; }
 .fields { display: flex; flex-direction: column; gap: 16px; }
@@ -461,6 +475,7 @@ footer {
 .github-fab:hover { transform: translateY(-3px); background: var(--bg); color: var(--ink); }
 .github-fab svg { width: 24px; height: 24px; fill: currentColor; }
 
+/* --- Móvil y tabletas: todo en una columna, foto de portada arriba --- */
 @media (max-width: 800px) {
   .hero { grid-template-columns: 1fr; min-height: auto; }
   .hero-image { aspect-ratio: 3 / 4; order: -1; }
@@ -472,6 +487,7 @@ footer {
   .github-fab { right: 16px; bottom: 16px; width: 44px; height: 44px; }
 }
 
+/* Accesibilidad: sin animaciones para quien lo tenga configurado en su sistema. */
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   *, *::before, *::after { animation: none !important; transition: none !important; }

@@ -1,45 +1,81 @@
 # Portafolio
 
-Aplicación web para mostrar una galería de imágenes y tus redes sociales, con un modo de edición protegido por contraseña para subir y eliminar imágenes.
+Portafolio web de modelo con galería de fotos, ficha de medidas, redes sociales y modo claro/oscuro. Incluye un modo de edición protegido por contraseña para subir y borrar fotos y elegir la portada.
+
+Las fotos se guardan en [Cloudinary](https://cloudinary.com), un servicio de imágenes en la nube con plan gratuito. Así las fotos no se pierden al reiniciar o actualizar el hosting, y cada visitante recibe una versión optimizada: más pequeña y en el formato más ligero que admita su navegador.
 
 ## Requisitos
 
-- Node.js 20 o superior
+- Node.js 21 o superior
+- Una cuenta gratuita de Cloudinary
 
-## Uso
+## Puesta en marcha
 
-```bash
-npm install
-ADMIN_PASSWORD="tu-contraseña" npm start
-```
-
-Abre http://localhost:3000. Para subir imágenes pulsa **Modo edición** e introduce la contraseña.
-
-Si no defines `ADMIN_PASSWORD`, la contraseña por defecto es `admin` (cámbiala antes de publicar el sitio).
+1. Crea una cuenta en https://cloudinary.com y copia tus claves (*Cloud name*, *API Key* y *API Secret*). Están en la consola, en **Dashboard → API Keys**.
+2. Copia el archivo de ejemplo y rellénalo con tus claves y una contraseña:
+   ```bash
+   cp .env.example .env
+   ```
+3. Instala las dependencias y arranca el servidor:
+   ```bash
+   npm install
+   npm start
+   ```
+4. Abre http://localhost:3000. Para subir fotos, pulsa las iniciales de arriba a la izquierda → **Editar** e introduce la contraseña.
 
 Durante el desarrollo, `npm run dev` reinicia el servidor al guardar cambios.
 
+### Migrar las fotos de la versión anterior
+
+Si subiste fotos antes de usar Cloudinary (carpeta `uploads/`), ejecuta **una sola vez**:
+
+```bash
+npm run migrar
+```
+
+El script conserva títulos, descripciones y portada, y no borra los archivos locales. Cuando compruebes que todo se ve bien, puedes borrar `uploads/` y `data/images.json`.
+
+## Publicar en un hosting
+
+No subas el archivo `.env`. En el panel del hosting, configura las mismas variables que tiene: `ADMIN_PASSWORD`, `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY` y `CLOUDINARY_API_SECRET`. El servidor usa el puerto que indique la variable `PORT`, que normalmente define el hosting.
+
 ## Personalización
 
-Edita [data/config.json](data/config.json) para cambiar tu nombre, lema (`tagline`), ciudad (`location`), biografía, correo de contacto, enlace al repositorio de GitHub (`github`, se muestra como botón flotante abajo a la derecha; bórralo para ocultarlo), medidas (`stats`, puedes añadir o quitar las que quieras) y redes sociales. La primera foto que subas se usa como portada. Las redes con icono incluido son: Instagram, Facebook, X y TikTok (cualquier otra se muestra solo con el nombre).
+Edita [data/config.json](data/config.json):
+
+| Campo      | Qué es                                                                 |
+| ---------- | ---------------------------------------------------------------------- |
+| `name`     | Nombre completo (se muestra en dos líneas en la portada)               |
+| `tagline`  | Lema sobre el nombre                                                    |
+| `location` | Ciudad                                                                  |
+| `bio`      | Texto de "Sobre mí"                                                     |
+| `email`    | Correo de contacto                                                      |
+| `github`   | Enlace del botón flotante de GitHub (bórralo para ocultar el botón)     |
+| `stats`    | Medidas; puedes añadir o quitar las que quieras                         |
+| `social`   | Redes sociales. Tienen icono: Instagram, Facebook, X y TikTok           |
+
+La portada es la foto marcada con **Usar como portada** en modo edición. Si no marcas ninguna, se usa la foto más antigua.
 
 ## Estructura
 
 ```
-server.js          Servidor Express y API
-data/config.json   Nombre, bio y redes sociales
-data/images.json   Lista de imágenes (se crea automáticamente)
-uploads/           Archivos de imagen subidos
-public/            Frontend (HTML, CSS, JS)
+server.js                      Servidor Express y API
+lib/cloudinary.js              Conexión con Cloudinary (subir, listar, borrar, portada)
+scripts/migrar-fotos-locales.js  Pasa las fotos locales antiguas a Cloudinary
+data/config.json               Datos del perfil
+public/                        Página web (HTML, CSS y JavaScript)
+.env.example                   Plantilla de variables de entorno
 ```
 
 ## API
 
-| Método | Ruta              | Descripción                          |
-| ------ | ----------------- | ------------------------------------ |
-| GET    | /api/config       | Datos del perfil y redes sociales    |
-| GET    | /api/images       | Lista de imágenes                    |
-| POST   | /api/images       | Sube una imagen (requiere contraseña) |
-| DELETE | /api/images/:id   | Elimina una imagen (requiere contraseña) |
+| Método | Ruta                    | Descripción                                |
+| ------ | ----------------------- | ------------------------------------------ |
+| GET    | /api/config             | Datos del perfil                           |
+| GET    | /api/images             | Lista de fotos                             |
+| POST   | /api/login              | Comprueba la contraseña                    |
+| POST   | /api/images             | Sube una foto (requiere contraseña)        |
+| PUT    | /api/images/:id/cover   | La marca como portada (requiere contraseña) |
+| DELETE | /api/images/:id         | La borra (requiere contraseña)             |
 
-Las rutas protegidas esperan la cabecera `x-admin-password`. Formatos aceptados: JPG, PNG, WEBP y GIF, hasta 10 MB.
+Las rutas protegidas esperan la cabecera `x-admin-password`. Formatos aceptados: JPG, PNG, WEBP y GIF, de hasta 10 MB.

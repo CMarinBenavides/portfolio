@@ -1,9 +1,16 @@
 <!doctype html>
+<!--
+  Página única del portafolio.
+  Este archivo solo define la estructura. El contenido (nombre, fotos, redes…)
+  lo rellena app.js con los datos que envía el servidor, y el aspecto lo
+  define styles.css.
+-->
 <html lang="es">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Portafolio Lyda</title>
+  <!-- Tipografías de Google Fonts: Cormorant Garamond (títulos) y Jost (textos). -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
@@ -17,8 +24,10 @@
   </script>
 </head>
 <body>
+  <!-- Barra superior fija: iniciales con menú, botón de tema y enlaces a las secciones. -->
   <nav class="topbar">
     <div class="brand">
+      <!-- Menú desplegable: al pulsar las iniciales aparece la opción de editar. -->
       <div class="menu">
         <button id="menu-btn" class="monogram" aria-haspopup="true" aria-expanded="false" aria-controls="menu-list">
           <span id="monogram"></span>
@@ -28,6 +37,7 @@
           <button id="admin-btn" class="menu-item">Editar</button>
         </div>
       </div>
+      <!-- Botón de tema: app.js le pone el icono de luna o sol. -->
       <button id="theme-btn" class="icon-btn" aria-label="Activar modo oscuro"></button>
     </div>
     <div class="links">
@@ -37,6 +47,7 @@
     </div>
   </nav>
 
+  <!-- Portada: nombre a la izquierda y foto principal a la derecha. -->
   <header class="hero" id="top">
     <div class="hero-text">
       <p id="tagline" class="eyebrow"></p>
@@ -49,6 +60,7 @@
     </div>
   </header>
 
+  <!-- Ficha de medidas (comp card). Se rellena con "stats" de config.json. -->
   <section class="stats" aria-label="Medidas">
     <dl id="stats"></dl>
   </section>
@@ -59,6 +71,7 @@
       <h2>Portfolio</h2>
     </div>
 
+    <!-- Formulario para subir fotos. Solo se ve en modo edición. -->
     <form id="upload-form" class="upload hidden">
       <label class="dropzone" id="dropzone">
         <input type="file" name="image" accept="image/jpeg,image/png,image/webp,image/gif" required>
@@ -74,10 +87,12 @@
       </div>
     </form>
 
+    <!-- Galería: app.js crea aquí una tarjeta por cada foto. -->
     <p id="empty" class="empty hidden">Aún no hay fotografías. Pulsa <em>Editar</em> para subir la primera.</p>
     <section id="gallery" class="gallery"></section>
   </main>
 
+  <!-- Biografía ("bio" en config.json). -->
   <section class="about" id="about">
     <div class="section-head">
       <span class="section-num">02</span>
@@ -86,6 +101,7 @@
     <p id="bio" class="bio"></p>
   </section>
 
+  <!-- Contacto: correo y redes sociales (config.json). -->
   <section class="contact" id="contact">
     <div class="section-head">
       <span class="section-num">03</span>
@@ -95,6 +111,8 @@
     <nav id="social" class="social" aria-label="Redes sociales"></nav>
   </section>
 
+  <!-- Visor a pantalla completa. <dialog> es un elemento nativo del navegador
+       para ventanas emergentes: se cierra solo con la tecla Esc. -->
   <dialog id="lightbox" class="lightbox">
     <button class="close" aria-label="Cerrar">×</button>
     <button class="nav prev" aria-label="Anterior">‹</button>
@@ -110,11 +128,13 @@
 
   <footer>© <span id="year"></span> <span id="footer-name"></span></footer>
 
+  <!-- Botón flotante que enlaza al repositorio de GitHub ("github" en config.json). -->
   <a id="github-link" class="github-fab hidden" target="_blank" rel="noopener noreferrer"
      aria-label="Ver el código de este proyecto en GitHub" title="Ver el proyecto en GitHub">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 .5a11.5 11.5 0 00-3.6 22.4c.6.1.8-.3.8-.6v-2c-3.2.7-3.9-1.5-3.9-1.5-.5-1.3-1.3-1.7-1.3-1.7-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.8 1.3 3.5 1 .1-.8.4-1.3.8-1.6-2.6-.3-5.3-1.3-5.3-5.7 0-1.3.5-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.2 1.2a11 11 0 015.8 0c2.2-1.5 3.2-1.2 3.2-1.2.6 1.6.2 2.8.1 3.1.8.8 1.2 1.8 1.2 3.1 0 4.4-2.7 5.4-5.3 5.7.4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6A11.5 11.5 0 0012 .5z"/></svg>
   </a>
 
+  <!-- Se carga al final para que todos los elementos de arriba ya existan. -->
   <script src="app.js"></script>
 </body>
 </html>

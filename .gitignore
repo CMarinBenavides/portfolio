@@ -1,5 +1,9 @@
+# Dependencias (se instalan con "npm install")
 node_modules/
-uploads/*
-!uploads/.gitkeep
-data/images.json
+
+# Claves y contraseñas: nunca deben subirse a GitHub
 .env
+
+# Fotos guardadas en local por la versión anterior (antes de Cloudinary)
+uploads/
+data/images.json
