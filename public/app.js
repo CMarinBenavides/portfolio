@@ -359,6 +359,24 @@ systemDark.addEventListener('change', updateThemeBtn); // si el sistema cambia d
 updateThemeBtn();
 
 // ---------------------------------------------------------------------------
+// Botón "volver al inicio"
+// ---------------------------------------------------------------------------
+// IntersectionObserver avisa cuando la portada entra o sale de la pantalla,
+// sin tener que comprobar la posición en cada movimiento del scroll.
+// Mientras la portada se ve, el botón queda oculto (clase "away").
+new IntersectionObserver(([entry]) => {
+  $('#to-top').classList.toggle('away', entry.isIntersecting);
+}).observe($('.hero'));
+
+$('#to-top').addEventListener('click', () => {
+  // El desplazamiento es suave gracias a "scroll-behavior: smooth" del CSS
+  // (y es instantáneo para quien tenga desactivadas las animaciones).
+  window.scrollTo({ top: 0 });
+  // Llevamos el foco del teclado arriba, porque el botón se ocultará al llegar.
+  $('#menu-btn').focus({ preventScroll: true });
+});
+
+// ---------------------------------------------------------------------------
 // Arranque
 // ---------------------------------------------------------------------------
 $('#year').textContent = new Date().getFullYear();
