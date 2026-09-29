@@ -147,12 +147,29 @@ function setAdmin(password) {
   if (password) sessionStorage.setItem('adminPassword', password);
   else sessionStorage.removeItem('adminPassword');
   $('#upload-form').classList.toggle('hidden', !password);
-  $('#admin-btn').classList.toggle('active', !!password);
-  $('#admin-btn').textContent = password ? 'Salir' : 'Editar';
+  $('#admin-btn').textContent = password ? 'Salir de edición' : 'Editar';
   loadImages();
 }
 
+// --- Menú desplegable de las iniciales ---
+function toggleMenu(open) {
+  $('#menu-list').hidden = !open;
+  $('#menu-btn').setAttribute('aria-expanded', open);
+}
+
+$('#menu-btn').addEventListener('click', () => toggleMenu($('#menu-list').hidden));
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.menu')) toggleMenu(false);
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && !$('#menu-list').hidden) {
+    toggleMenu(false);
+    $('#menu-btn').focus();
+  }
+});
+
 $('#admin-btn').addEventListener('click', async () => {
+  toggleMenu(false);
   if (adminPassword) return setAdmin(null);
   const password = prompt('Contraseña de administrador:');
   if (!password) return;
@@ -213,7 +230,16 @@ form.addEventListener('submit', async (e) => {
 // Sin elección guardada se sigue la preferencia del sistema.
 const systemDark = matchMedia('(prefers-color-scheme: dark)');
 const isDark = () => (document.documentElement.dataset.theme || (systemDark.matches ? 'dark' : 'light')) === 'dark';
-const updateThemeBtn = () => ($('#theme-btn').textContent = isDark() ? 'Claro' : 'Oscuro');
+const MOON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 019.5 4a8 8 0 1010.5 10.5z"/></svg>';
+const SUN = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
+
+// El icono muestra el tema al que se cambiará: luna en claro, sol en oscuro.
+function updateThemeBtn() {
+  const dark = isDark();
+  $('#theme-btn').innerHTML = dark ? SUN : MOON;
+  $('#theme-btn').setAttribute('aria-label', dark ? 'Activar modo claro' : 'Activar modo oscuro');
+  $('#theme-btn').title = dark ? 'Modo claro' : 'Modo oscuro';
+}
 
 $('#theme-btn').addEventListener('click', () => {
   const theme = isDark() ? 'light' : 'dark';

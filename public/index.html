@@ -18,13 +18,22 @@
 </head>
 <body>
   <nav class="topbar">
-    <a href="#top" class="monogram" id="monogram"></a>
+    <div class="brand">
+      <div class="menu">
+        <button id="menu-btn" class="monogram" aria-haspopup="true" aria-expanded="false" aria-controls="menu-list">
+          <span id="monogram"></span>
+          <svg class="caret" viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4"/></svg>
+        </button>
+        <div id="menu-list" class="menu-list" hidden>
+          <button id="admin-btn" class="menu-item">Editar</button>
+        </div>
+      </div>
+      <button id="theme-btn" class="icon-btn" aria-label="Activar modo oscuro"></button>
+    </div>
     <div class="links">
       <a href="#portfolio">Portfolio</a>
       <a href="#about">Sobre mí</a>
       <a href="#contact">Contacto</a>
-      <button id="theme-btn" class="link-btn" aria-label="Cambiar tema">Oscuro</button>
-      <button id="admin-btn" class="link-btn">Editar</button>
     </div>
   </nav>
 

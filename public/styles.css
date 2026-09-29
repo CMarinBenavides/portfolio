@@ -76,27 +76,83 @@ a { color: inherit; }
   background: color-mix(in srgb, var(--bg) 85%, transparent);
   backdrop-filter: blur(8px);
 }
+.brand { display: flex; align-items: center; gap: 16px; }
+.menu { position: relative; }
 .monogram {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-family: var(--serif);
   font-size: 1.5rem;
   font-style: italic;
-  text-decoration: none;
+  color: var(--ink);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
 }
+.caret {
+  width: 10px;
+  height: 6px;
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 1.2;
+  transition: transform .3s;
+}
+.monogram[aria-expanded="true"] .caret { transform: rotate(180deg); }
+.menu-list {
+  position: absolute;
+  top: calc(100% + 14px);
+  left: 0;
+  min-width: 170px;
+  padding: 8px 0;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  box-shadow: 0 12px 32px var(--shadow);
+}
+.menu-list[hidden] { display: none; }
+.menu-item {
+  display: block;
+  width: 100%;
+  padding: 10px 20px;
+  font: 400 .7rem var(--sans);
+  letter-spacing: .24em;
+  text-transform: uppercase;
+  text-align: left;
+  color: var(--ink);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+.menu-item:hover, .menu-item:focus-visible { background: var(--surface); outline: none; }
+.icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: none;
+  color: var(--ink);
+  cursor: pointer;
+  transition: border-color .3s;
+}
+.icon-btn:hover { border-color: var(--ink); }
+.icon-btn svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; }
 .links { display: flex; gap: clamp(14px, 3vw, 36px); align-items: center; }
-.links a, .link-btn {
+.links a {
   font: 400 .72rem var(--sans);
   letter-spacing: .24em;
   text-transform: uppercase;
   text-decoration: none;
   color: var(--ink);
-  background: none;
-  border: none;
   padding: 4px 0;
-  cursor: pointer;
   border-bottom: 1px solid transparent;
   transition: border-color .3s;
 }
-.links a:hover, .link-btn:hover, .link-btn.active { border-color: var(--ink); }
+.links a:hover { border-color: var(--ink); }
 
 /* --- Portada --- */
 .hero {
