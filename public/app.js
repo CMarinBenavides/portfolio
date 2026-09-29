@@ -30,6 +30,7 @@ const ICONS = {
 // cada recarga; se borra sola al cerrar la pestaña.
 let adminPassword = sessionStorage.getItem('adminPassword');
 let images = []; // lista de fotos recibida del servidor
+let lightboxItems = []; // fotos que se recorren en el visor (galería o un shooting)
 let current = 0; // posición de la foto abierta en el visor
 
 /**
@@ -168,7 +169,7 @@ function card(image, isCover) {
   }
 
   // Clic o tecla Enter sobre la foto → abrirla en el visor.
-  const open = () => openLightbox(images.indexOf(image));
+  const open = () => openLightbox(images, images.indexOf(image));
   figure.addEventListener('click', open);
   figure.addEventListener('keydown', (e) => e.key === 'Enter' && open());
   return figure;
@@ -178,11 +179,18 @@ function card(image, isCover) {
 // Visor de fotos a pantalla completa
 // ---------------------------------------------------------------------------
 
+// Abre el visor con una lista de fotos (la galería, o las 5 de un shooting)
+// empezando por la foto en la posición "index".
+function openLightbox(list, index) {
+  lightboxItems = list;
+  showLightbox(index);
+}
+
 // Muestra la foto en la posición "index". El cálculo con % hace que, al pasar
 // de la última, se vuelva a la primera (y al revés).
-function openLightbox(index) {
-  current = (index + images.length) % images.length;
-  const image = images[current];
+function showLightbox(index) {
+  current = (index + lightboxItems.length) % lightboxItems.length;
+  const image = lightboxItems[current];
   $('#lightbox-img').src = image.full;
   $('#lightbox-img').alt = image.title || '';
   $('#lightbox-title').textContent = image.title;
@@ -193,13 +201,13 @@ function openLightbox(index) {
 // Flechas ‹ › para cambiar de foto; clic en cualquier otro sitio (salvo la
 // propia foto) para cerrar. La tecla Esc la cierra el navegador automáticamente.
 $('#lightbox').addEventListener('click', (e) => {
-  if (e.target.classList.contains('prev')) openLightbox(current - 1);
-  else if (e.target.classList.contains('next')) openLightbox(current + 1);
+  if (e.target.classList.contains('prev')) showLightbox(current - 1);
+  else if (e.target.classList.contains('next')) showLightbox(current + 1);
   else if (e.target.tagName !== 'IMG') $('#lightbox').close();
 });
 $('#lightbox').addEventListener('keydown', (e) => {
-  if (e.key === 'ArrowLeft') openLightbox(current - 1);
-  if (e.key === 'ArrowRight') openLightbox(current + 1);
+  if (e.key === 'ArrowLeft') showLightbox(current - 1);
+  if (e.key === 'ArrowRight') showLightbox(current + 1);
 });
 
 // ---------------------------------------------------------------------------
@@ -215,15 +223,20 @@ async function setCover(image) {
   loadImages();
 }
 
-async function deleteImage(image) {
-  if (!confirm(`¿Eliminar "${image.title || 'esta imagen'}"?`)) return;
-  const res = await fetch(`/api/images/${image.id}`, {
+// Borra una foto, un evento o un shooting tras pedir confirmación.
+//   endpoint → '/api/images', '/api/events' o '/api/shootings'
+//   reload   → función que vuelve a pintar la sección correspondiente
+async function deleteItem(endpoint, item, reload) {
+  if (!confirm(`¿Eliminar "${item.title || 'esta imagen'}"?`)) return;
+  const res = await fetch(`${endpoint}/${item.id}`, {
     method: 'DELETE',
     headers: { 'x-admin-password': adminPassword },
   });
   if (!res.ok) alert((await res.json()).error);
-  loadImages();
+  reload();
 }
+
+const deleteImage = (image) => deleteItem('/api/images', image, loadImages);
 
 // Activa (con contraseña) o desactiva (con null) el modo edición.
 function setAdmin(password) {
@@ -231,8 +244,18 @@ function setAdmin(password) {
   if (password) sessionStorage.setItem('adminPassword', password);
   else sessionStorage.removeItem('adminPassword');
   $('#upload-form').classList.toggle('hidden', !password);
+  // Botones "+ Añadir…" de Eventos y Shootings (y cerrar sus formularios al salir).
+  $('#add-event-btn').classList.toggle('hidden', !password);
+  $('#add-shooting-btn').classList.toggle('hidden', !password);
+  if (!password) {
+    toggleEventForm(false);
+    toggleShootingForm(false);
+  }
   $('#admin-btn').textContent = password ? 'Salir de edición' : 'Editar';
-  loadImages(); // repinta la galería para mostrar u ocultar los botones de edición
+  // Repinta las secciones para mostrar u ocultar los botones de edición.
+  loadImages();
+  loadEvents();
+  loadShootings();
 }
 
 // ---------------------------------------------------------------------------
@@ -272,59 +295,245 @@ $('#admin-btn').addEventListener('click', async () => {
 });
 
 // ---------------------------------------------------------------------------
-// Formulario de subida de fotos
+// Formularios de subida (fotos de la galería y eventos)
 // ---------------------------------------------------------------------------
-const form = $('#upload-form');
-const fileInput = form.querySelector('input[type=file]');
-const dropzone = $('#dropzone');
 
-// Muestra una vista previa de la foto elegida antes de subirla.
-// URL.createObjectURL crea una dirección temporal que apunta al archivo local.
-function showPreview(file) {
-  const preview = $('#preview');
-  if (!file) {
-    preview.classList.add('hidden');
-    $('#drop-text').classList.remove('hidden');
-    return;
-  }
-  preview.src = URL.createObjectURL(file);
-  preview.classList.remove('hidden');
-  $('#drop-text').classList.add('hidden');
+/**
+ * Prepara un formulario de subida. Los formularios de la página (fotos, eventos
+ * y shootings) tienen la misma estructura, así que comparten este código:
+ * vista previa de las imágenes, zonas para arrastrar archivos y envío al servidor.
+ *
+ *   form        → el elemento <form>
+ *   endpoint    → a qué ruta de la API se envía ('/api/images', '/api/events'…)
+ *   successText → mensaje que se muestra al terminar
+ *   onSuccess   → qué hacer después (normalmente, volver a pintar la sección)
+ */
+function setupUploadForm(form, { endpoint, successText, onSuccess }) {
+  const msg = form.querySelector('.msg');
+  const submit = form.querySelector('button[type=submit]');
+
+  // Cada zona de archivo (.dropzone) tiene su propia vista previa. El
+  // formulario de shootings tiene dos: la portada y las 4 del collage.
+  const zones = [...form.querySelectorAll('.dropzone')].map((dropzone) => {
+    const input = dropzone.querySelector('input[type=file]');
+    const previews = dropzone.querySelector('.previews');
+    const dropText = dropzone.querySelector('.drop-text');
+    // data-count="4" en el HTML indica cuántas imágenes exactas se piden.
+    const count = Number(input.dataset.count) || 0;
+
+    // Muestra miniaturas de las imágenes elegidas antes de subirlas.
+    // URL.createObjectURL crea una dirección temporal que apunta al archivo local.
+    function showPreview() {
+      const files = [...input.files];
+      previews.replaceChildren(...files.map((file) => el('img', { src: URL.createObjectURL(file), alt: '' })));
+      previews.classList.toggle('multi', files.length > 1); // varias → cuadrícula
+      dropText.classList.toggle('hidden', files.length > 0);
+
+      // Si se piden N imágenes exactas, avisamos al navegador cuando no son N:
+      // setCustomValidity impide enviar el formulario y muestra el mensaje.
+      if (count) {
+        input.setCustomValidity(files.length && files.length !== count
+          ? `Selecciona exactamente ${count} imágenes (has elegido ${files.length}).`
+          : '');
+        if (files.length && files.length !== count) input.reportValidity();
+      }
+    }
+
+    input.addEventListener('change', showPreview);
+
+    // Resalta la zona al arrastrar archivos encima. Soltarlos funciona solo
+    // porque el <input type="file"> transparente cubre toda la zona.
+    ['dragenter', 'dragover'].forEach((ev) => dropzone.addEventListener(ev, () => dropzone.classList.add('dragover')));
+    ['dragleave', 'drop'].forEach((ev) => dropzone.addEventListener(ev, () => dropzone.classList.remove('dragover')));
+
+    return { showPreview };
+  });
+
+  // Cuando se limpia el formulario (form.reset()), quitamos también las vistas
+  // previas. El evento "reset" llega antes de que se vacíen los campos, por eso
+  // esperamos un instante (setTimeout 0) antes de repintar.
+  form.addEventListener('reset', () => {
+    setTimeout(() => zones.forEach((zone) => zone.showPreview()));
+    msg.textContent = '';
+  });
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault(); // evita que el navegador recargue la página al enviar
+    submit.disabled = true; // evita subir lo mismo dos veces por doble clic
+    msg.className = 'msg';
+    msg.textContent = 'Subiendo…';
+
+    // FormData empaqueta la imagen, el título y la descripción tal como los espera el servidor.
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'x-admin-password': adminPassword },
+      body: new FormData(form),
+    });
+    submit.disabled = false;
+
+    if (res.ok) {
+      form.reset();
+      msg.textContent = successText;
+      onSuccess();
+    } else {
+      msg.className = 'msg error';
+      msg.textContent = (await res.json()).error;
+      if (res.status === 401) setAdmin(null); // la contraseña cambió: salimos del modo edición
+    }
+  });
 }
 
-fileInput.addEventListener('change', () => showPreview(fileInput.files[0]));
+setupUploadForm($('#upload-form'), {
+  endpoint: '/api/images',
+  successText: 'Fotografía subida',
+  onSuccess: loadImages,
+});
 
-// Resalta la zona al arrastrar un archivo encima. Soltarlo funciona solo porque
-// el <input type="file"> transparente cubre toda la zona.
-['dragenter', 'dragover'].forEach((ev) => dropzone.addEventListener(ev, () => dropzone.classList.add('dragover')));
-['dragleave', 'drop'].forEach((ev) => dropzone.addEventListener(ev, () => dropzone.classList.remove('dragover')));
+// ---------------------------------------------------------------------------
+// Eventos
+// ---------------------------------------------------------------------------
 
-form.addEventListener('submit', async (e) => {
-  e.preventDefault(); // evita que el navegador recargue la página al enviar
-  const msg = $('#upload-msg');
-  const button = form.querySelector('button');
-  button.disabled = true; // evita subir la misma foto dos veces por doble clic
-  msg.className = 'msg';
-  msg.textContent = 'Subiendo…';
+// Pide la lista de eventos y pinta las tarjetas.
+async function loadEvents() {
+  const events = await fetch('/api/events').then((r) => r.json());
+  // La sección se ve siempre. Si no hay eventos, se muestra un aviso: para los
+  // visitantes, un texto sencillo; en modo edición, una indicación de cómo añadir uno.
+  $('#events-empty').textContent = adminPassword
+    ? 'Aún no hay eventos. Pulsa «+ Añadir evento» para publicar el primero.'
+    : 'No hay eventos registrados.';
+  $('#events-empty').classList.toggle('hidden', events.length > 0);
+  $('#events-list').replaceChildren(...events.map(eventCard));
+}
 
-  // FormData empaqueta la foto, el título y la descripción tal como los espera el servidor.
-  const res = await fetch('/api/images', {
-    method: 'POST',
-    headers: { 'x-admin-password': adminPassword },
-    body: new FormData(form),
-  });
-  button.disabled = false;
+// Crea la tarjeta de un evento: imagen arriba, título y descripción debajo.
+function eventCard(event) {
+  const article = el('article', { class: 'event-card' }, [
+    el('div', { class: 'event-image' }, [
+      el('img', { src: event.thumb, alt: event.title, loading: 'lazy' }),
+    ]),
+    el('div', { class: 'event-body' }, [
+      el('h3', { text: event.title }),
+      el('p', { text: event.description }),
+    ]),
+  ]);
 
-  if (res.ok) {
-    msg.textContent = 'Fotografía subida';
-    form.reset();
-    showPreview(null);
-    loadImages();
-  } else {
-    msg.className = 'msg error';
-    msg.textContent = (await res.json()).error;
-    if (res.status === 401) setAdmin(null); // la contraseña cambió: salimos del modo edición
+  if (adminPassword) {
+    const del = el('button', { class: 'delete', 'aria-label': 'Eliminar evento', text: '×' });
+    del.addEventListener('click', () => deleteItem('/api/events', event, loadEvents));
+    article.append(del);
   }
+  return article;
+}
+
+// Muestra u oculta un formulario "+ Añadir…" y el botón que lo abre (cuando
+// el formulario está abierto, el botón se oculta).
+function toggleForm(form, button, open) {
+  form.classList.toggle('hidden', !open);
+  button.classList.toggle('hidden', open || !adminPassword);
+  if (open) form.querySelector('input[name=title]').focus();
+  else form.reset();
+}
+
+const toggleEventForm = (open) => toggleForm($('#event-form'), $('#add-event-btn'), open);
+
+$('#add-event-btn').addEventListener('click', () => toggleEventForm(true));
+$('#cancel-event-btn').addEventListener('click', () => toggleEventForm(false));
+
+setupUploadForm($('#event-form'), {
+  endpoint: '/api/events',
+  successText: 'Evento publicado',
+  onSuccess: () => {
+    loadEvents();
+    // Cerramos el formulario un momento después para que se lea el mensaje.
+    setTimeout(() => toggleEventForm(false), 1200);
+  },
+});
+
+// ---------------------------------------------------------------------------
+// Shootings
+// ---------------------------------------------------------------------------
+
+// Pide la lista de shootings y pinta las tarjetas.
+async function loadShootings() {
+  const shootings = await fetch('/api/shootings').then((r) => r.json());
+  $('#shootings-empty').textContent = adminPassword
+    ? 'Aún no hay shootings. Pulsa «+ Añadir shooting» para publicar el primero.'
+    : 'No hay shootings registrados.';
+  $('#shootings-empty').classList.toggle('hidden', shootings.length > 0);
+  $('#shootings-list').replaceChildren(...shootings.map(shootingCard));
+}
+
+/**
+ * Crea la tarjeta de un shooting. Tiene un pequeño carrusel de dos "diapositivas":
+ *   1. la portada,
+ *   2. el collage de 4 imágenes en cuadrícula 2×2.
+ * Las diapositivas están una al lado de la otra dentro de una fila con scroll
+ * horizontal. "scroll-snap" (en el CSS) hace que siempre quede una entera a la
+ * vista, y así en el móvil también se puede pasar de una a otra deslizando el dedo.
+ */
+function shootingCard(shooting) {
+  // Las 5 fotos del shooting, en orden, para recorrerlas en el visor.
+  const all = [shooting.cover, ...shooting.images].map((img) => ({
+    ...img, title: shooting.title, description: shooting.description,
+  }));
+  // Cada imagen abre el visor en su posición al hacer clic.
+  const photo = (img, index) => {
+    const image = el('img', { src: img.thumb, alt: shooting.title, loading: 'lazy' });
+    image.addEventListener('click', () => openLightbox(all, index));
+    return image;
+  };
+
+  const track = el('div', { class: 'shooting-track' }, [
+    el('div', { class: 'shooting-slide' }, [photo(shooting.cover, 0)]),
+    el('div', { class: 'shooting-slide collage' }, shooting.images.map((img, i) => photo(img, i + 1))),
+  ]);
+
+  // Flechas y puntitos. Cada flecha desplaza la fila exactamente un ancho de tarjeta.
+  const prev = el('button', { class: 'slide-btn prev', 'aria-label': 'Ver portada', text: '‹' });
+  const next = el('button', { class: 'slide-btn next', 'aria-label': 'Ver collage', text: '›' });
+  const dots = [0, 1].map(() => el('span', { class: 'dot' }));
+  prev.addEventListener('click', () => track.scrollBy({ left: -track.clientWidth }));
+  next.addEventListener('click', () => track.scrollBy({ left: track.clientWidth }));
+
+  // Al desplazarse (con flechas o con el dedo), actualizamos qué punto está
+  // activo y ocultamos la flecha que ya no lleva a ningún sitio.
+  function updateControls() {
+    const slide = Math.round(track.scrollLeft / track.clientWidth);
+    dots.forEach((dot, i) => dot.classList.toggle('active', i === slide));
+    prev.classList.toggle('hidden', slide === 0);
+    next.classList.toggle('hidden', slide === 1);
+  }
+  track.addEventListener('scroll', updateControls, { passive: true });
+  requestAnimationFrame(updateControls); // estado inicial, cuando ya tiene tamaño
+
+  const article = el('article', { class: 'shooting-card' }, [
+    el('div', { class: 'shooting-viewer' }, [track, prev, next, el('div', { class: 'dots' }, dots)]),
+    el('div', { class: 'event-body' }, [
+      el('h3', { text: shooting.title }),
+      el('p', { text: shooting.description }),
+    ]),
+  ]);
+
+  if (adminPassword) {
+    const del = el('button', { class: 'delete', 'aria-label': 'Eliminar shooting', text: '×' });
+    del.addEventListener('click', () => deleteItem('/api/shootings', shooting, loadShootings));
+    article.append(del);
+  }
+  return article;
+}
+
+const toggleShootingForm = (open) => toggleForm($('#shooting-form'), $('#add-shooting-btn'), open);
+
+$('#add-shooting-btn').addEventListener('click', () => toggleShootingForm(true));
+$('#cancel-shooting-btn').addEventListener('click', () => toggleShootingForm(false));
+
+setupUploadForm($('#shooting-form'), {
+  endpoint: '/api/shootings',
+  successText: 'Shooting publicado',
+  onSuccess: () => {
+    loadShootings();
+    setTimeout(() => toggleShootingForm(false), 1200);
+  },
 });
 
 // ---------------------------------------------------------------------------
@@ -359,6 +568,18 @@ systemDark.addEventListener('change', updateThemeBtn); // si el sistema cambia d
 updateThemeBtn();
 
 // ---------------------------------------------------------------------------
+// Sombra de la barra superior al bajar
+// ---------------------------------------------------------------------------
+// En cuanto la página se desplaza un poco, la barra recibe la clase "scrolled"
+// y el CSS le pone una sombra suave. "passive: true" le indica al navegador que
+// no vamos a bloquear el scroll, así se mantiene fluido.
+function updateTopbarShadow() {
+  $('.topbar').classList.toggle('scrolled', window.scrollY > 8);
+}
+window.addEventListener('scroll', updateTopbarShadow, { passive: true });
+updateTopbarShadow(); // por si la página se abre ya desplazada (p. ej. al recargar)
+
+// ---------------------------------------------------------------------------
 // Botón "volver al inicio"
 // ---------------------------------------------------------------------------
 // IntersectionObserver avisa cuando la portada entra o sale de la pantalla,
@@ -381,4 +602,4 @@ $('#to-top').addEventListener('click', () => {
 // ---------------------------------------------------------------------------
 $('#year').textContent = new Date().getFullYear();
 loadConfig();
-setAdmin(adminPassword); // también carga las fotos
+setAdmin(adminPassword); // también carga las fotos, los eventos y los shootings

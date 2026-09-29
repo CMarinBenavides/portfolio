@@ -43,8 +43,10 @@
       <button id="theme-btn" class="icon-btn" aria-label="Activar modo oscuro"></button>
     </div>
     <div class="links">
-      <a href="#portfolio">Portfolio</a>
+      <a href="#portafolio">Portafolio</a>
       <a href="#about">Sobre mí</a>
+      <a href="#eventos">Eventos</a>
+      <a href="#shootings">Shootings</a>
       <a href="#contact">Contacto</a>
     </div>
   </nav>
@@ -55,7 +57,7 @@
       <p id="tagline" class="eyebrow"></p>
       <h1 id="name">Portafolio Lyda</h1>
       <p id="location" class="location"></p>
-      <a href="#portfolio" class="scroll-cue">Ver portfolio</a>
+      <a href="#portafolio" class="scroll-cue">Ver portafolio</a>
     </div>
     <div class="hero-image" id="hero-image">
       <span class="placeholder">Tu foto principal aparecerá aquí</span>
@@ -67,25 +69,27 @@
     <dl id="stats"></dl>
   </section>
 
-  <main id="portfolio">
+  <main id="portafolio">
     <div class="section-head">
       <span class="section-num">01</span>
-      <h2>Portfolio</h2>
+      <h2>Portafolio</h2>
     </div>
 
-    <!-- Formulario para subir fotos. Solo se ve en modo edición. -->
+    <!-- Formulario para subir fotos. Solo se ve en modo edición.
+         Las clases dropzone, previews, drop-text y msg las usa app.js
+         (el formulario de eventos tiene la misma estructura). -->
     <form id="upload-form" class="upload hidden">
-      <label class="dropzone" id="dropzone">
+      <label class="dropzone">
         <input type="file" name="image" accept="image/jpeg,image/png,image/webp,image/gif" required>
-        <img id="preview" class="hidden" alt="">
-        <span id="drop-text">Arrastra una fotografía aquí<br>o haz clic para elegirla</span>
+        <div class="previews"></div>
+        <span class="drop-text">Arrastra una fotografía aquí<br>o haz clic para elegirla</span>
       </label>
       <div class="fields">
         <p class="eyebrow">Nueva fotografía</p>
         <input type="text" name="title" placeholder="Título · ej. Vogue Editorial" maxlength="100">
         <textarea name="description" placeholder="Descripción · fotógrafo, marca, año…" maxlength="500" rows="3"></textarea>
         <button type="submit" class="btn">Subir</button>
-        <p id="upload-msg" class="msg" role="status"></p>
+        <p class="msg" role="status"></p>
       </div>
     </form>
 
@@ -103,10 +107,82 @@
     <p id="bio" class="bio"></p>
   </section>
 
+  <!-- Eventos: tarjetas con imagen, título y descripción.
+       Si no hay ninguno, app.js muestra el aviso "No hay eventos registrados". -->
+  <section class="events" id="eventos">
+    <div class="section-head">
+      <span class="section-num">03</span>
+      <h2>Eventos</h2>
+      <!-- Solo visible en modo edición: abre el formulario de nuevo evento. -->
+      <button id="add-event-btn" class="btn btn-outline hidden">+ Añadir evento</button>
+    </div>
+
+    <form id="event-form" class="upload hidden">
+      <label class="dropzone">
+        <input type="file" name="image" accept="image/jpeg,image/png,image/webp,image/gif" required>
+        <div class="previews"></div>
+        <span class="drop-text">Arrastra la imagen del evento<br>o haz clic para elegirla</span>
+      </label>
+      <div class="fields">
+        <p class="eyebrow">Nuevo evento</p>
+        <input type="text" name="title" placeholder="Título · ej. Bogotá Fashion Week 2026" maxlength="100" required>
+        <textarea name="description" placeholder="Descripción · lugar, fecha, marcas, tu participación…" maxlength="500" rows="5"></textarea>
+        <div class="form-actions">
+          <button type="submit" class="btn">Publicar</button>
+          <button type="button" class="btn btn-outline" id="cancel-event-btn">Cancelar</button>
+        </div>
+        <p class="msg" role="status"></p>
+      </div>
+    </form>
+
+    <p id="events-empty" class="empty hidden"></p>
+    <div id="events-list" class="events-list"></div>
+  </section>
+
+  <!-- Shootings: cada tarjeta muestra la portada y, al avanzar, un collage de
+       4 imágenes. Si no hay ninguno, app.js muestra "No hay shootings registrados". -->
+  <section class="shootings" id="shootings">
+    <div class="section-head">
+      <span class="section-num">04</span>
+      <h2>Shootings</h2>
+      <!-- Solo visible en modo edición: abre el formulario de nuevo shooting. -->
+      <button id="add-shooting-btn" class="btn btn-outline hidden">+ Añadir shooting</button>
+    </div>
+
+    <form id="shooting-form" class="upload hidden">
+      <div class="dropzones">
+        <label class="dropzone">
+          <input type="file" name="cover" accept="image/jpeg,image/png,image/webp,image/gif" required>
+          <div class="previews"></div>
+          <span class="drop-text">Portada<br>arrastra una imagen o haz clic</span>
+        </label>
+        <!-- "multiple" permite elegir varias imágenes; app.js comprueba que sean 4. -->
+        <label class="dropzone">
+          <input type="file" name="images" accept="image/jpeg,image/png,image/webp,image/gif" multiple required data-count="4">
+          <div class="previews"></div>
+          <span class="drop-text">Collage · 4 imágenes<br>selecciónalas todas a la vez</span>
+        </label>
+      </div>
+      <div class="fields">
+        <p class="eyebrow">Nuevo shooting</p>
+        <input type="text" name="title" placeholder="Título · ej. Editorial Primavera" maxlength="100" required>
+        <textarea name="description" placeholder="Descripción · fotógrafo, marca, lugar…" maxlength="500" rows="5"></textarea>
+        <div class="form-actions">
+          <button type="submit" class="btn">Publicar</button>
+          <button type="button" class="btn btn-outline" id="cancel-shooting-btn">Cancelar</button>
+        </div>
+        <p class="msg" role="status"></p>
+      </div>
+    </form>
+
+    <p id="shootings-empty" class="empty hidden"></p>
+    <div id="shootings-list" class="shootings-list"></div>
+  </section>
+
   <!-- Contacto: correo y redes sociales (config.json). -->
   <section class="contact" id="contact">
     <div class="section-head">
-      <span class="section-num">03</span>
+      <span class="section-num">05</span>
       <h2>Contacto</h2>
     </div>
     <a id="email" class="email hidden"></a>

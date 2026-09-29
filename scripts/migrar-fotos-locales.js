@@ -13,7 +13,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { uploadImage } from '../lib/cloudinary.js';
+import { gallery, COVER } from '../lib/cloudinary.js';
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const listFile = path.join(root, 'data', 'images.json');
@@ -33,11 +33,11 @@ for (const image of images.toReversed()) {
   const file = path.join(root, 'uploads', image.file);
   try {
     const buffer = await fs.readFile(file);
-    await uploadImage(buffer, {
-      title: image.title,
-      description: image.description,
-      cover: Boolean(image.cover),
-    });
+    await gallery.upload(
+      buffer,
+      { title: image.title, description: image.description },
+      image.cover ? [COVER] : [], // la que era portada conserva la etiqueta de portada
+    );
     migrated++;
     console.log(`✔  ${image.title || image.file}`);
   } catch (error) {

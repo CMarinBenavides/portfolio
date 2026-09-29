@@ -1,6 +1,6 @@
 # Portafolio
 
-Portafolio web de modelo con galería de fotos, ficha de medidas, redes sociales y modo claro/oscuro. Incluye un modo de edición protegido por contraseña para subir y borrar fotos y elegir la portada.
+Portafolio web de modelo con galería de fotos, eventos, shootings, ficha de medidas, redes sociales y modo claro/oscuro. Incluye un modo de edición protegido por contraseña para subir y borrar fotos, publicar eventos (imagen, título y descripción) y shootings (portada + collage de 4 imágenes), y elegir la portada.
 
 Las fotos se guardan en [Cloudinary](https://cloudinary.com), un servicio de imágenes en la nube con plan gratuito. Así las fotos no se pierden al reiniciar o actualizar el hosting, y cada visitante recibe una versión optimizada: más pequeña y en el formato más ligero que admita su navegador.
 
@@ -54,13 +54,17 @@ Edita [data/config.json](data/config.json):
 | `stats`    | Medidas; puedes añadir o quitar las que quieras                         |
 | `social`   | Redes sociales. Tienen icono: Instagram, Facebook, X y TikTok           |
 
+En modo edición, la sección **Eventos** muestra el botón **+ Añadir evento**. Si no hay eventos, los visitantes ven el aviso «No hay eventos registrados».
+
+La sección **Shootings** funciona igual, con el botón **+ Añadir shooting**. Cada shooting lleva título, descripción, una portada y exactamente 4 imágenes: la tarjeta muestra la portada y, al avanzar con las flechas (o deslizando en el móvil), el collage de 4 imágenes.
+
 La portada es la foto marcada con **Usar como portada** en modo edición. Si no marcas ninguna, se usa la foto más antigua.
 
 ## Estructura
 
 ```
 server.js                      Servidor Express y API
-lib/cloudinary.js              Conexión con Cloudinary (subir, listar, borrar, portada)
+lib/cloudinary.js              Conexión con Cloudinary (galería, eventos y shootings)
 scripts/migrar-fotos-locales.js  Pasa las fotos locales antiguas a Cloudinary
 data/config.json               Datos del perfil
 public/                        Página web (HTML, CSS y JavaScript)
@@ -76,6 +80,12 @@ public/                        Página web (HTML, CSS y JavaScript)
 | POST   | /api/login              | Comprueba la contraseña                    |
 | POST   | /api/images             | Sube una foto (requiere contraseña)        |
 | PUT    | /api/images/:id/cover   | La marca como portada (requiere contraseña) |
+| GET    | /api/events             | Lista de eventos                           |
+| POST   | /api/events             | Publica un evento (requiere contraseña; el título es obligatorio) |
+| DELETE | /api/events/:id         | Borra un evento (requiere contraseña)      |
+| GET    | /api/shootings          | Lista de shootings                         |
+| POST   | /api/shootings          | Publica un shooting: campos `cover` (1 imagen), `images` (4), `title` y `description` (requiere contraseña) |
+| DELETE | /api/shootings/:id      | Borra un shooting con sus 5 imágenes (requiere contraseña) |
 | DELETE | /api/images/:id         | La borra (requiere contraseña)             |
 
 Las rutas protegidas esperan la cabecera `x-admin-password`. Formatos aceptados: JPG, PNG, WEBP y GIF, de hasta 10 MB.
