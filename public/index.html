@@ -46,6 +46,7 @@
       <a href="#portafolio">Portafolio</a>
       <a href="#about">Sobre mí</a>
       <a href="#eventos">Eventos</a>
+      <a href="#polaroids">Polaroids</a>
       <a href="#shootings">Shootings</a>
       <a href="#contact">Contacto</a>
     </div>
@@ -79,11 +80,15 @@
          Las clases dropzone, previews, drop-text y msg las usa app.js
          (el formulario de eventos tiene la misma estructura). -->
     <form id="upload-form" class="upload hidden">
-      <label class="dropzone">
-        <input type="file" name="image" accept="image/jpeg,image/png,image/webp,image/gif" required>
-        <div class="previews"></div>
-        <span class="drop-text">Arrastra una fotografía aquí<br>o haz clic para elegirla</span>
-      </label>
+      <div class="dropzone-wrap">
+        <label class="dropzone">
+          <input type="file" name="image" accept="image/jpeg,image/png,image/webp,image/gif" required>
+          <div class="previews"></div>
+          <span class="drop-text">Arrastra una fotografía aquí<br>o haz clic para elegirla</span>
+        </label>
+        <!-- Botón para elegir las fotos desde Google Drive (app.js lo muestra si está configurado). -->
+        <button type="button" class="drive-btn hidden">Desde Google Drive</button>
+      </div>
       <div class="fields">
         <p class="eyebrow">Nueva fotografía</p>
         <input type="text" name="title" placeholder="Título · ej. Vogue Editorial" maxlength="100">
@@ -107,7 +112,8 @@
     <p id="bio" class="bio"></p>
   </section>
 
-  <!-- Eventos: tarjetas con imagen, título y descripción.
+  <!-- Eventos: cada uno se muestra como una hoja de portafolio (cabecera,
+       título, fecha, créditos y de 1 a 3 fotos con leyenda).
        Si no hay ninguno, app.js muestra el aviso "No hay eventos registrados". -->
   <section class="events" id="eventos">
     <div class="section-head">
@@ -117,18 +123,57 @@
       <button id="add-event-btn" class="btn btn-outline hidden">+ Añadir evento</button>
     </div>
 
-    <form id="event-form" class="upload hidden">
-      <label class="dropzone">
-        <input type="file" name="image" accept="image/jpeg,image/png,image/webp,image/gif" required>
-        <div class="previews"></div>
-        <span class="drop-text">Arrastra la imagen del evento<br>o haz clic para elegirla</span>
-      </label>
+    <!-- Sirve para publicar y para editar un evento (app.js cambia los textos
+         con ids event-* y muestra las fotos actuales al editar). -->
+    <form id="event-form" class="upload event-form hidden">
+      <div class="event-media">
+        <!-- Al editar: fotos actuales, cada una con su leyenda y un botón para quitarla. -->
+        <div id="event-existing" class="caption-list hidden"></div>
+        <div class="dropzone-wrap">
+          <label class="dropzone">
+            <!-- De 1 a 3 fotos. app.js ajusta data-max según las fotos que ya tenga el evento. -->
+            <input type="file" name="images" accept="image/jpeg,image/png,image/webp,image/gif" multiple data-max="3" required>
+            <div class="previews"></div>
+            <span class="drop-text" id="event-drop-text">Fotos del evento (de 1 a 3)<br>arrastra o haz clic para elegirlas</span>
+          </label>
+          <!-- Botón para elegir las fotos desde Google Drive (app.js lo muestra si está configurado). -->
+          <button type="button" class="drive-btn hidden">Desde Google Drive</button>
+        </div>
+        <!-- Leyenda y lugar de cada foto nueva. app.js crea una fila por foto elegida. -->
+        <div id="event-captions" class="caption-list"></div>
+
+        <div class="dropzone-wrap logo-wrap">
+          <label class="dropzone dropzone-logo">
+            <input type="file" name="logo" accept="image/jpeg,image/png,image/webp,image/gif">
+            <div class="previews"></div>
+            <span class="drop-text" id="event-logo-text">Logo del evento (opcional)</span>
+          </label>
+          <button type="button" class="drive-btn hidden">Desde Google Drive</button>
+        </div>
+        <!-- Al editar un evento con logo: casilla para quitarlo. -->
+        <label id="event-remove-logo" class="check hidden">
+          <input type="checkbox" name="removeLogo" value="1"> Quitar el logo actual
+        </label>
+      </div>
+
       <div class="fields">
-        <p class="eyebrow">Nuevo evento</p>
-        <input type="text" name="title" placeholder="Título · ej. Bogotá Fashion Week 2026" maxlength="100" required>
-        <textarea name="description" placeholder="Descripción · lugar, fecha, marcas, tu participación…" maxlength="500" rows="5"></textarea>
+        <p class="eyebrow" id="event-form-title">Nuevo evento</p>
+        <input type="text" name="title" placeholder="Título · ej. Bogotá es Moda" maxlength="100" required>
+        <input type="text" name="date" placeholder="Fecha · ej. Octubre 2025" maxlength="40">
+        <input type="text" name="detail" placeholder="Detalle · ej. 1 pasarela, 1 evento" maxlength="80">
+        <textarea name="description" placeholder="Descripción (opcional)" maxlength="400" rows="3"></textarea>
+        <!-- Créditos: 3 columnas con un título y un texto. -->
+        <p class="eyebrow">Créditos (opcional)</p>
+        <div class="credit-inputs">
+          <input type="text" name="credit1Label" placeholder="ej. Lyda Rangel" maxlength="40">
+          <input type="text" name="credit1Value" placeholder="ej. Zasca" maxlength="60">
+          <input type="text" name="credit2Label" placeholder="ej. Accesorios" maxlength="40">
+          <input type="text" name="credit2Value" placeholder="ej. Si aplica" maxlength="60">
+          <input type="text" name="credit3Label" placeholder="ej. Bolsos" maxlength="40">
+          <input type="text" name="credit3Value" placeholder="ej. Si aplica" maxlength="60">
+        </div>
         <div class="form-actions">
-          <button type="submit" class="btn">Publicar</button>
+          <button type="submit" class="btn" id="event-submit">Publicar</button>
           <button type="button" class="btn btn-outline" id="cancel-event-btn">Cancelar</button>
         </div>
         <p class="msg" role="status"></p>
@@ -139,36 +184,94 @@
     <div id="events-list" class="events-list"></div>
   </section>
 
-  <!-- Shootings: cada tarjeta muestra la portada y, al avanzar, un collage de
-       4 imágenes. Si no hay ninguno, app.js muestra "No hay shootings registrados". -->
-  <section class="shootings" id="shootings">
+  <!-- Polaroids: hasta 4 fotos con marco negro, en una cuadrícula de 2 × 2.
+       En modo edición, los huecos libres se ven como marcos vacíos y el
+       formulario permite subir las fotos que falten (una o varias a la vez).
+       Si no hay ninguna, app.js muestra "No hay polaroids registradas". -->
+  <section class="polaroids" id="polaroids">
     <div class="section-head">
       <span class="section-num">04</span>
-      <h2>Shootings</h2>
-      <!-- Solo visible en modo edición: abre el formulario de nuevo shooting. -->
-      <button id="add-shooting-btn" class="btn btn-outline hidden">+ Añadir shooting</button>
+      <h2>Polaroids</h2>
+      <!-- Solo visible en modo edición y mientras queden huecos libres. -->
+      <button id="add-polaroid-btn" class="btn btn-outline hidden">+ Añadir polaroids</button>
     </div>
 
-    <form id="shooting-form" class="upload hidden">
-      <div class="dropzones">
+    <form id="polaroid-form" class="upload hidden">
+      <div class="dropzone-wrap">
         <label class="dropzone">
-          <input type="file" name="cover" accept="image/jpeg,image/png,image/webp,image/gif" required>
+          <!-- app.js ajusta data-max a los huecos libres (4 menos las que ya hay). -->
+          <input type="file" name="image" accept="image/jpeg,image/png,image/webp,image/gif" multiple data-max="4" required>
           <div class="previews"></div>
-          <span class="drop-text">Portada<br>arrastra una imagen o haz clic</span>
+          <span class="drop-text" id="polaroid-drop-text">Arrastra hasta 4 fotografías<br>o haz clic para elegirlas</span>
         </label>
-        <!-- "multiple" permite elegir varias imágenes; app.js comprueba que sean 4. -->
-        <label class="dropzone">
-          <input type="file" name="images" accept="image/jpeg,image/png,image/webp,image/gif" multiple required data-count="4">
-          <div class="previews"></div>
-          <span class="drop-text">Collage · 4 imágenes<br>selecciónalas todas a la vez</span>
-        </label>
+        <!-- Botón para elegir las fotos desde Google Drive (app.js lo muestra si está configurado). -->
+        <button type="button" class="drive-btn hidden">Desde Google Drive</button>
       </div>
       <div class="fields">
-        <p class="eyebrow">Nuevo shooting</p>
+        <p class="eyebrow">Nuevas polaroids</p>
+        <p class="hint" id="polaroid-hint">Se colocan en orden en los huecos libres.</p>
+        <div class="form-actions">
+          <button type="submit" class="btn">Subir</button>
+          <button type="button" class="btn btn-outline" id="cancel-polaroid-btn">Cancelar</button>
+        </div>
+        <p class="msg" role="status"></p>
+      </div>
+    </form>
+
+    <p id="polaroids-empty" class="empty hidden"></p>
+    <div id="polaroids-grid" class="polaroids-grid"></div>
+  </section>
+
+  <!-- Shooting: se muestra centrado como una revista. La portada lleva el nombre
+       como cabecera y el título como titular; al avanzar se ve el collage de
+       4 imágenes como página interior. Solo se permite un shooting a la vez.
+       Si no hay ninguno, app.js muestra "No hay shootings registrados". -->
+  <section class="shootings" id="shootings">
+    <div class="section-head">
+      <span class="section-num">05</span>
+      <h2>Shootings</h2>
+      <!-- Solo visible en modo edición y cuando aún no hay shooting (solo se permite uno). -->
+      <button id="add-shooting-btn" class="btn btn-outline hidden">+ Añadir shooting</button>
+      <!-- En modo edición, si ya hay un shooting, se muestra este aviso en lugar del botón. -->
+      <p id="shooting-limit" class="limit-note hidden">Solo se permite un shooting. Bórralo para publicar otro.</p>
+    </div>
+
+    <!-- Sirve para publicar y para editar el shooting: app.js cambia los textos
+         (ids shooting-*) y hace opcionales las imágenes al editar. -->
+    <form id="shooting-form" class="upload hidden">
+      <!-- Organizador del collage (solo al editar): páginas con sus imágenes, que
+           se pueden reordenar, mover de página o quitar. Lo rellena app.js. -->
+      <div id="shooting-organizer" class="organizer hidden"></div>
+      <div class="dropzones">
+        <div class="dropzone-wrap">
+          <label class="dropzone">
+            <input type="file" name="cover" accept="image/jpeg,image/png,image/webp,image/gif" required>
+            <div class="previews"></div>
+            <span class="drop-text" id="shooting-cover-text">Portada<br>arrastra una imagen o haz clic</span>
+          </label>
+          <!-- Botón para elegir las fotos desde Google Drive (app.js lo muestra si está configurado). -->
+          <button type="button" class="drive-btn hidden">Desde Google Drive</button>
+        </div>
+        <!-- "multiple" permite elegir varias imágenes. data-multiple-of="4": app.js
+             comprueba que formen páginas completas de 4 (4, 8, 12…), hasta data-max. -->
+        <div class="dropzone-wrap">
+          <label class="dropzone">
+            <input type="file" name="images" accept="image/jpeg,image/png,image/webp,image/gif" multiple required data-multiple-of="4" data-max="20">
+            <div class="previews"></div>
+            <span class="drop-text" id="shooting-collage-text">Collage · 4 imágenes por página<br>elige 4, 8, 12… a la vez</span>
+          </label>
+          <!-- Botón para elegir las fotos desde Google Drive (app.js lo muestra si está configurado). -->
+          <button type="button" class="drive-btn hidden">Desde Google Drive</button>
+        </div>
+      </div>
+      <div class="fields">
+        <p class="eyebrow" id="shooting-form-heading">Nuevo shooting</p>
         <input type="text" name="title" placeholder="Título · ej. Editorial Primavera" maxlength="100" required>
+        <!-- Subtítulo opcional: aparece en la portada, justo encima del título. -->
+        <input type="text" name="subtitle" placeholder="Subtítulo (opcional) · ej. Colección otoño-invierno" maxlength="100">
         <textarea name="description" placeholder="Descripción · fotógrafo, marca, lugar…" maxlength="500" rows="5"></textarea>
         <div class="form-actions">
-          <button type="submit" class="btn">Publicar</button>
+          <button type="submit" class="btn" id="shooting-submit">Publicar</button>
           <button type="button" class="btn btn-outline" id="cancel-shooting-btn">Cancelar</button>
         </div>
         <p class="msg" role="status"></p>
@@ -182,12 +285,31 @@
   <!-- Contacto: correo y redes sociales (config.json). -->
   <section class="contact" id="contact">
     <div class="section-head">
-      <span class="section-num">05</span>
+      <span class="section-num">06</span>
       <h2>Contacto</h2>
     </div>
     <a id="email" class="email hidden"></a>
     <nav id="social" class="social" aria-label="Redes sociales"></nav>
   </section>
+
+  <!-- Ventana para editar el título y la descripción de una foto de la galería
+       ya publicada (modo edición). app.js la rellena y la abre. -->
+  <dialog id="text-editor" class="text-editor">
+    <form method="dialog" id="text-form">
+      <p class="eyebrow" id="text-editor-heading">Editar fotografía</p>
+      <label>Título
+        <input type="text" name="title" maxlength="100" placeholder="Opcional">
+      </label>
+      <label>Descripción
+        <textarea name="description" maxlength="500" rows="5"></textarea>
+      </label>
+      <div class="form-actions">
+        <button type="submit" class="btn">Guardar</button>
+        <button type="button" class="btn btn-outline" id="text-cancel">Cancelar</button>
+      </div>
+      <p class="msg" role="status"></p>
+    </form>
+  </dialog>
 
   <!-- Visor a pantalla completa. <dialog> es un elemento nativo del navegador
        para ventanas emergentes: se cierra solo con la tecla Esc. -->

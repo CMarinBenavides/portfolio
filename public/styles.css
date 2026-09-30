@@ -17,6 +17,7 @@
   --shadow: rgba(20, 18, 16, .18);
   --bar-shadow: rgba(20, 18, 16, .07); /* sombra suave de la barra superior al bajar */
   --on-photo: #f5f1eb; /* texto sobre fotos y sobre el visor, igual en ambos temas */
+  --paper: #fdfcfa; /* fondo de las hojas de los eventos */
   --serif: 'Cormorant Garamond', Georgia, serif;
   --sans: 'Jost', system-ui, sans-serif;
   /* Margen lateral: 5% del ancho de la pantalla, entre 16px (móvil) y 64px (escritorio). */
@@ -34,6 +35,7 @@
   --danger: #e08a7f;
   --shadow: rgba(0, 0, 0, .5);
   --bar-shadow: rgba(0, 0, 0, .45);
+  --paper: #1e1c19;
   color-scheme: dark;
 }
 /* Si el visitante no eligió tema, se usa el oscuro cuando su sistema está en modo oscuro. */
@@ -47,6 +49,7 @@
     --danger: #e08a7f;
     --shadow: rgba(0, 0, 0, .5);
     --bar-shadow: rgba(0, 0, 0, .45);
+    --paper: #1e1c19;
     color-scheme: dark;
   }
 }
@@ -225,6 +228,71 @@ a { color: inherit; }
   animation: reveal 1.6s ease both;
 }
 .placeholder { font-family: var(--serif); font-style: italic; color: var(--muted); }
+
+/* Botón "Ajustar encuadre" sobre la foto principal o la imagen de un evento
+   (solo en modo edición). */
+.adjust-btn {
+  position: absolute;
+  left: 20px;
+  bottom: 20px;
+  z-index: 1;
+  padding: 10px 18px;
+  border: none;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bg) 90%, transparent);
+  color: var(--ink);
+  font: 400 .66rem var(--sans);
+  letter-spacing: .22em;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: 0 4px 14px var(--shadow);
+}
+.adjust-btn:hover { background: var(--ink); color: var(--bg); }
+
+/* Modo de ajuste (clase "adjusting" en el marco de la imagen): se puede
+   arrastrar (cursor de mano) y un marco fino indica que está en edición.
+   touch-action: none evita que en el móvil el arrastre mueva la página en
+   lugar de la imagen. Se quitan la animación y el zoom al pasar el ratón para
+   que la imagen no se mueva sola mientras se ajusta. */
+.adjusting { outline: 2px solid var(--on-photo); outline-offset: -10px; }
+.adjusting img { cursor: grab; touch-action: none; animation: none !important; transform: none !important; }
+.adjusting img:active { cursor: grabbing; }
+.adjusting .adjust-btn { display: none; }
+/* Barra inferior con la indicación y los botones Guardar / Cancelar. */
+.adjust-bar {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 16px 20px;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(6px);
+}
+.adjust-bar p { margin: 0; font-family: var(--serif); font-style: italic; font-size: 1.1rem; }
+.adjust-bar .btn { padding: 11px 26px; }
+/* En las fotos de los eventos (más pequeñas), botón y barra más compactos. */
+.sheet-photo .adjust-btn { left: 10px; top: 10px; bottom: auto; padding: 7px 12px; font-size: .56rem; } /* arriba, para no tapar la leyenda */
+.sheet-photo .adjust-bar { padding: 8px 10px; gap: 6px; justify-content: center; }
+.sheet-photo .adjust-bar p { display: none; }
+.sheet-photo .zoom-control { flex-basis: 100%; max-width: none; }
+.sheet-photo .adjust-bar .btn { padding: 8px 14px; font-size: .6rem; }
+/* Control del zoom en la barra de ajuste: barra deslizante entre un − y un +. */
+.zoom-control { display: flex; align-items: center; gap: 8px; flex: 1 1 140px; max-width: 260px; color: var(--ink); }
+.zoom-control span { font-size: 1.1rem; line-height: 1; }
+.zoom-control input { flex: 1; min-width: 0; accent-color: var(--ink); cursor: pointer; }
+/* Lo mismo en las polaroids, aún más compactos porque el marco es estrecho. */
+.polaroid-photo .adjust-btn { left: 10px; bottom: 10px; padding: 7px 12px; font-size: .56rem; }
+.polaroid-photo .adjust-bar { padding: 8px 10px; gap: 6px; justify-content: center; }
+.polaroid-photo .adjust-bar p { display: none; }
+.polaroid-photo .zoom-control { flex-basis: 100%; max-width: none; }
+.polaroid-photo .adjust-bar .btn { padding: 8px 14px; font-size: .6rem; }
+
+/* Durante el ajuste se ocultan los botones flotantes para que no tapen la barra. */
+.hero-adjusting .fab-stack { display: none; }
 @keyframes reveal { from { opacity: 0; transform: scale(1.06); } }
 
 /* --- Medidas --- */
@@ -241,7 +309,7 @@ a { color: inherit; }
 .stats dd { margin: 6px 0 0; font-family: var(--serif); font-size: 1.6rem; }
 
 /* --- Secciones --- */
-main, .events, .shootings, .about, .contact { max-width: 1400px; margin: 0 auto; padding: 120px var(--gutter) 0; }
+main, .events, .polaroids, .shootings, .about, .contact { max-width: 1400px; margin: 0 auto; padding: 120px var(--gutter) 0; }
 .section-head { display: flex; align-items: baseline; gap: 20px; margin-bottom: 48px; }
 .section-num { font-size: .72rem; letter-spacing: .2em; color: var(--muted); }
 .section-head h2 {
@@ -286,7 +354,7 @@ main, .events, .shootings, .about, .contact { max-width: 1400px; margin: 0 auto;
   transition: opacity .4s, transform .4s;
 }
 .card:hover figcaption, .card:focus-visible figcaption { opacity: 1; transform: none; }
-.card .delete, .event-card .delete, .shooting-card .delete {
+.card .delete {
   position: absolute;
   top: 12px; right: 12px;
   width: 34px; height: 34px;
@@ -297,6 +365,22 @@ main, .events, .shootings, .about, .contact { max-width: 1400px; margin: 0 auto;
   font-size: 1.2rem;
   cursor: pointer;
 }
+/* Botón del lápiz (editar textos), a la izquierda del de borrar. */
+.card .edit-text {
+  position: absolute;
+  top: 12px; right: 54px;
+  width: 34px; height: 34px;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: 50%;
+  background: var(--bg);
+  color: var(--ink);
+  cursor: pointer;
+}
+.edit-text svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linejoin: round; }
+.edit-text:hover { background: var(--ink); color: var(--bg); }
+
 .card .cover-btn {
   position: absolute;
   top: 12px; left: 12px;
@@ -315,6 +399,7 @@ main, .events, .shootings, .about, .contact { max-width: 1400px; margin: 0 auto;
 
 /* --- Formulario de subida --- */
 .upload {
+  scroll-margin-top: 96px; /* al desplazarse hasta el formulario, que no quede bajo la barra fija */
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 32px;
@@ -344,11 +429,91 @@ main, .events, .shootings, .about, .contact { max-width: 1400px; margin: 0 auto;
 /* Varias imágenes elegidas (collage): miniaturas en cuadrícula 2×2. */
 .previews.multi { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 .previews.multi img { width: 100%; aspect-ratio: 1; object-fit: cover; max-height: 140px; }
+/* Cada zona de archivo va con su botón "Desde Google Drive" debajo. */
+.dropzone-wrap { display: flex; flex-direction: column; gap: 10px; }
+.dropzone-wrap .dropzone { flex: 1; }
+.drive-btn {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 16px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--bg);
+  color: var(--ink);
+  font: 400 .66rem var(--sans);
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: border-color .3s;
+}
+.drive-btn:hover { border-color: var(--ink); }
+.drive-btn:disabled { opacity: .5; cursor: wait; }
+.drive-btn svg { width: 16px; height: 16px; }
+
+/* Ventana del selector de Google Drive. Google la coloca calculando la posición
+   por su cuenta y, con la barra fija y el scroll de esta página, a veces la deja
+   descolocada. Aquí la fijamos siempre en el centro de la pantalla, con el fondo
+   oscurecido (".picker-dialog" y ".picker-dialog-bg" son las clases de Google;
+   !important hace falta para ganar a los estilos que Google pone en línea). */
+.picker-dialog-bg {
+  position: fixed !important;
+  inset: 0 !important;
+  width: auto !important;
+  height: auto !important;
+  background: rgba(12, 11, 10, .7) !important;
+  opacity: 1 !important;
+}
+.picker-dialog {
+  position: fixed !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, .45);
+}
+
+/* --- Organizador del collage (al editar el shooting) --- */
+/* Ocupa todo el ancho del formulario, encima de las zonas de archivo. */
+.organizer { scroll-margin-top: 96px; grid-column: 1 / -1; display: flex; flex-direction: column; gap: 16px; padding-bottom: 24px; border-bottom: 1px solid var(--line); }
+.org-help { margin: 0; font-size: .85rem; color: var(--muted); }
+.org-page { padding: 14px; border: 1px solid var(--line); background: var(--bg); }
+.org-page-head { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: .66rem; letter-spacing: .24em; text-transform: uppercase; }
+/* Recuento de imágenes de la página: verde si tiene 4, rojo si no. */
+.org-count { font-weight: 500; }
+.org-count.ok { color: #3f8a4f; }
+.org-count.bad { color: var(--danger); }
+/* Miniaturas: hasta 4 por fila en escritorio (y las que sobren debajo). */
+.org-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px; min-height: 90px; }
+.org-empty { grid-column: 1 / -1; margin: 0; align-self: center; text-align: center; font-family: var(--serif); font-style: italic; color: var(--muted); }
+.org-thumb { position: relative; aspect-ratio: 3 / 4; background: var(--surface); cursor: grab; }
+.org-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }
+.org-thumb.dragging { opacity: .35; }
+.org-thumb.drop-target { outline: 2px solid var(--ink); outline-offset: 2px; }
+/* Botones ‹ › × sobre la parte inferior de cada miniatura. */
+.org-actions { position: absolute; left: 4px; right: 4px; bottom: 4px; display: flex; justify-content: space-between; gap: 4px; }
+.org-btn {
+  width: 26px; height: 26px; padding: 0;
+  display: flex; align-items: center; justify-content: center;
+  border: none; border-radius: 50%;
+  background: color-mix(in srgb, var(--bg) 90%, transparent);
+  color: var(--ink);
+  font: 400 1rem/1 var(--sans);
+  cursor: pointer;
+}
+.org-btn:disabled { opacity: .3; cursor: default; }
+.org-btn.org-remove { color: var(--danger); margin-left: auto; }
+.org-footer { align-items: center; }
+.org-note { font-size: .8rem; color: var(--danger); }
+/* Aviso al intentar guardar con páginas incompletas. */
+.org-warning { margin: 0; padding: 12px 16px; border-left: 3px solid var(--danger); background: color-mix(in srgb, var(--danger) 10%, transparent); color: var(--danger); font-size: .9rem; }
+.org-warning:empty { display: none; }
+
 /* Formulario de shootings: dos zonas de archivo, una encima de otra. */
 .dropzones { display: flex; flex-direction: column; gap: 16px; }
 .dropzones .dropzone { min-height: 180px; }
 .fields { display: flex; flex-direction: column; gap: 16px; }
-.fields input, .fields textarea {
+.fields input, .fields textarea, .text-editor input, .text-editor textarea {
   font: 300 1rem var(--sans);
   color: var(--ink);
   background: transparent;
@@ -358,7 +523,7 @@ main, .events, .shootings, .about, .contact { max-width: 1400px; margin: 0 auto;
   resize: vertical;
   outline: none;
 }
-.fields input:focus, .fields textarea:focus { border-color: var(--ink); }
+.fields input:focus, .fields textarea:focus, .text-editor input:focus, .text-editor textarea:focus { border-color: var(--ink); }
 .btn {
   align-self: flex-start;
   font: 400 .72rem var(--sans);
@@ -380,50 +545,274 @@ main, .events, .shootings, .about, .contact { max-width: 1400px; margin: 0 auto;
 .msg { margin: 0; min-height: 1.5em; font-size: .85rem; color: var(--muted); }
 .msg.error { color: var(--danger); }
 
+/* --- Ventana para editar textos --- */
+.text-editor {
+  width: min(520px, calc(100% - 32px));
+  padding: 32px;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  color: var(--ink);
+  box-shadow: 0 24px 60px var(--shadow);
+}
+.text-editor::backdrop { background: rgba(0, 0, 0, .45); }
+.text-editor form { display: grid; gap: 18px; text-align: left; }
+.text-editor .eyebrow { margin: 0; }
+.text-editor label {
+  display: grid;
+  gap: 8px;
+  font-size: .66rem;
+  letter-spacing: .22em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* --- Polaroids --- */
+/* Cuadrícula de 2 × 2, centrada y con un ancho máximo, como una hoja de contactos. */
+.polaroids-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 36px 28px;
+  max-width: 760px;
+  margin: 0 auto;
+}
+/* Cada polaroid: foto vertical (3:4) dentro de un marco negro grueso con una
+   sombra suave, como una copia impresa apoyada sobre el papel. */
+.polaroid {
+  position: relative;
+  margin: 0;
+  padding: 0;
+  border: 14px solid #0b0a09; /* negro en ambos temas, como en una copia real */
+  background: #0b0a09;
+  box-shadow: 0 14px 30px var(--shadow);
+  cursor: zoom-in;
+  transition: transform .5s cubic-bezier(.2, .7, .2, 1), box-shadow .5s;
+}
+/* La columna derecha va un poco más abajo, para que no se vea todo tan rígido. */
+.polaroid:nth-child(even) { transform: translateY(24px); }
+.polaroid:hover, .polaroid:focus-visible { transform: translateY(-6px); box-shadow: 0 22px 40px var(--shadow); }
+.polaroid:nth-child(even):hover, .polaroid:nth-child(even):focus-visible { transform: translateY(18px); }
+/* En modo oscuro el marco negro se perdería con el fondo: un filo claro lo separa. */
+:root[data-theme="dark"] .polaroid { outline: 1px solid var(--line); }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .polaroid { outline: 1px solid var(--line); }
+}
+.polaroid-photo { position: relative; aspect-ratio: 3 / 4; overflow: hidden; background: var(--surface); }
+.polaroid-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+/* Botón de borrar en la esquina, por encima del marco. */
+.polaroid .delete {
+  position: absolute;
+  top: -12px; right: -12px;
+  z-index: 2;
+  width: 32px; height: 32px;
+  border: none;
+  border-radius: 50%;
+  background: var(--bg);
+  color: var(--danger);
+  font-size: 1.1rem;
+  cursor: pointer;
+  box-shadow: 0 2px 8px var(--shadow);
+}
+/* Flechas para cambiar el orden y número de posición (modo edición), en la
+   esquina superior izquierda, como pastilla sobre el marco. */
+.order-btns {
+  position: absolute;
+  top: -12px; left: -12px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  border-radius: 999px;
+  background: var(--bg);
+  box-shadow: 0 2px 8px var(--shadow);
+  font-size: .72rem;
+  letter-spacing: .1em;
+  color: var(--muted);
+}
+.order-btn {
+  width: 32px; height: 32px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ink);
+  font: 400 1.2rem var(--serif);
+  cursor: pointer;
+}
+.order-btn:hover:not(:disabled) { background: var(--ink); color: var(--bg); }
+.order-btn:disabled { opacity: .25; cursor: default; }
+/* Al arrastrar: la polaroid que se mueve se ve tenue y la de destino, resaltada. */
+.polaroid[draggable="true"] { cursor: grab; }
+.polaroid.dragging { opacity: .4; }
+.polaroid.drop-target { outline: 2px dashed var(--ink); outline-offset: 6px; }
+/* Hueco libre (solo en modo edición): marco punteado con un "+" para añadir. */
+.polaroid-empty {
+  aspect-ratio: 3 / 4;
+  box-sizing: content-box; /* con el relleno, mide lo mismo que una polaroid con su marco */
+  padding: 12px;
+  border: 2px dashed var(--line);
+  background: transparent;
+  box-shadow: none;
+  color: var(--muted);
+  font: 300 2.6rem var(--serif);
+  cursor: pointer;
+}
+.polaroid-empty:hover { border-color: var(--ink); color: var(--ink); transform: none; box-shadow: none; }
+.polaroid-empty:nth-child(even):hover { transform: translateY(24px); }
+.hint { margin: 0; font-size: .85rem; color: var(--muted); }
+
 /* --- Eventos --- */
 /* El botón "+ Añadir evento" se alinea a la derecha del título de la sección. */
 .section-head .btn { margin-left: auto; align-self: center; }
-/* Rejilla de tarjetas: tantas columnas de al menos 300px como quepan. */
-.events-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 48px 32px;
-}
-.event-card { position: relative; }
-/* Todas las imágenes de eventos con la misma proporción (4:3), recortadas si hace falta. */
-.event-image { aspect-ratio: 4 / 3; overflow: hidden; background: var(--surface); }
-.event-image img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 1.2s cubic-bezier(.2, .7, .2, 1);
-}
-.event-card:hover .event-image img { transform: scale(1.04); }
-.event-body { padding-top: 20px; border-bottom: 1px solid var(--line); padding-bottom: 24px; }
-.event-body h3 {
-  font-family: var(--serif);
-  font-weight: 400;
-  font-style: italic;
-  font-size: 1.7rem;
-  line-height: 1.2;
-  margin: 0 0 10px;
-}
-/* pre-line respeta los saltos de línea que se escriban en la descripción. */
-.event-body p { margin: 0; color: var(--muted); white-space: pre-line; }
-.event-body p:empty { display: none; }
+/* Las hojas de los eventos van una debajo de otra, centradas. */
+.events-list { display: flex; flex-direction: column; align-items: center; gap: 96px; }
 
-/* --- Shootings --- */
-/* Tarjetas algo más grandes que las de eventos, porque el collage necesita espacio. */
-.shootings-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-  gap: 48px 32px;
+/* Hoja de un evento: como una página de portafolio impresa, con fondo de
+   papel (--paper) y una sombra suave debajo. */
+.event-sheet {
+  position: relative;
+  width: min(820px, 100%);
+  background: var(--paper);
+  box-shadow: 0 20px 50px var(--shadow);
+  text-align: left;
 }
-.shooting-card { position: relative; }
-/* Marco del carrusel: formato vertical (4:5), como una página de revista. */
-.shooting-viewer { position: relative; aspect-ratio: 4 / 5; background: var(--surface); }
-/* Fila con las dos diapositivas. El scroll horizontal queda oculto y
-   "scroll-snap" hace que siempre se detenga en una diapositiva entera. */
+/* Cabecera: nombre · PORTFOLIO a la izquierda, año a la derecha y una línea debajo. */
+.sheet-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  margin: 0 clamp(20px, 7%, 60px);
+  padding: 28px 0 8px;
+  border-bottom: 2px solid var(--line);
+  font-size: .72rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.sheet-top strong { font: 600 .8rem var(--serif); letter-spacing: .08em; color: var(--ink); margin-right: 14px; }
+/* Título, fecha y detalle a la izquierda; logo del evento a la derecha. */
+.sheet-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+  padding: 28px clamp(20px, 7%, 60px) 0;
+}
+.sheet-heading h3 {
+  margin: 0;
+  font: 600 clamp(1.4rem, 4vw, 2rem) / 1.1 var(--serif);
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.sheet-date { margin: 6px 0 0 clamp(0px, 3%, 20px); font-size: .95rem; letter-spacing: .08em; text-transform: uppercase; }
+.sheet-detail { margin: 18px 0 0 clamp(0px, 2%, 14px); font-size: .6rem; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.sheet-logo { max-width: 120px; max-height: 64px; object-fit: contain; flex-shrink: 0; }
+/* Créditos: hasta 3 columnas con título en mayúsculas y un texto debajo. */
+.sheet-credits {
+  display: grid;
+  grid-auto-flow: column; /* una columna por crédito (de 1 a 3), del mismo ancho */
+  grid-auto-columns: 1fr;
+  gap: 16px;
+  margin: 0;
+  padding: 32px clamp(20px, 7%, 60px) 0;
+  text-align: center;
+}
+.sheet-credits dt { font-size: .74rem; font-weight: 500; letter-spacing: .06em; text-transform: uppercase; }
+.sheet-credits dd { margin: 8px 0 0; font-size: .66rem; letter-spacing: .12em; color: var(--muted); }
+/* pre-line respeta los saltos de línea que se escriban en la descripción. */
+.sheet-desc { margin: 0; padding: 28px clamp(20px, 7%, 60px) 0; color: var(--muted); white-space: pre-line; }
+/* Fotos: de borde a borde de la hoja, tantas columnas como fotos, con una
+   separación fina. Con una sola foto, apaisada; con 2 o 3, verticales. */
+.sheet-photos { display: grid; gap: 3px; margin-top: 44px; }
+.sheet-photos.count-2 { grid-template-columns: repeat(2, 1fr); }
+.sheet-photos.count-3 { grid-template-columns: repeat(3, 1fr); }
+.sheet-photo { position: relative; margin: 0; overflow: hidden; background: var(--surface); aspect-ratio: 3 / 5; cursor: zoom-in; }
+.count-1 .sheet-photo { aspect-ratio: 4 / 3; }
+.count-3 .sheet-photo { aspect-ratio: 9 / 16; }
+.sheet-photo img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 1.2s cubic-bezier(.2, .7, .2, 1); }
+.sheet-photo:hover img { transform: scale(1.03); }
+/* Leyenda sobre la foto, abajo a la izquierda, con un degradado oscuro para que se lea. */
+.sheet-photo figcaption {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 48px clamp(12px, 8%, 36px) 20px;
+  background: linear-gradient(transparent, rgba(0, 0, 0, .55));
+  color: var(--on-photo);
+  font-size: .6rem;
+  letter-spacing: .1em;
+  pointer-events: none;
+}
+.adjusting figcaption { display: none; }
+/* Botones de modo edición debajo de la hoja. */
+.sheet-admin { display: flex; justify-content: flex-end; gap: 12px; padding: 16px; }
+.sheet-admin .btn { padding: 10px 22px; }
+.sheet-delete { color: var(--danger); }
+
+/* Formulario de eventos: fotos (con su leyenda) y logo a la izquierda, textos a la derecha. */
+.event-media { display: flex; flex-direction: column; gap: 16px; }
+.dropzone-logo { min-height: 110px; }
+.caption-list { display: flex; flex-direction: column; gap: 12px; }
+.caption-list:empty { display: none; }
+.caption-row { display: flex; align-items: center; gap: 14px; }
+.caption-row img { width: 56px; height: 72px; object-fit: cover; flex-shrink: 0; }
+.caption-row.removed { opacity: .4; }
+.caption-fields { flex: 1; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.caption-fields input, .credit-inputs input {
+  font: 300 .9rem var(--sans);
+  color: var(--ink);
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--line);
+  padding: 6px 0;
+  outline: none;
+  min-width: 0;
+}
+.caption-fields input:focus, .credit-inputs input:focus { border-color: var(--ink); }
+.caption-remove {
+  flex-shrink: 0;
+  min-width: 34px; height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--danger);
+  font: 400 .72rem var(--sans);
+  cursor: pointer;
+}
+.caption-row.removed .caption-remove { color: var(--ink); opacity: 1; }
+/* Créditos: título y texto uno al lado del otro, en 3 filas. */
+.credit-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 16px; }
+.check { display: flex; align-items: center; gap: 8px; font-size: .85rem; color: var(--muted); cursor: pointer; }
+
+/* --- Shooting con forma de revista --- */
+/* Centrado en la sección. */
+.shootings-list { display: flex; flex-direction: column; align-items: center; gap: 96px; }
+.magazine { position: relative; width: min(500px, 100%); }
+
+/* La "revista": proporción de una hoja A4 (210 × 297 mm). La sombra en capas
+   dibuja el canto de varias páginas apiladas detrás, y una sombra difusa debajo. */
+.magazine-viewer {
+  position: relative;
+  aspect-ratio: 210 / 297;
+  background: var(--surface);
+  box-shadow:
+    5px 5px 0 -1px var(--bg), 5px 5px 0 0 var(--line),
+    10px 10px 0 -1px var(--bg), 10px 10px 0 0 var(--line),
+    0 40px 60px -30px var(--shadow);
+}
+/* Lomo: una sombra muy suave en el borde izquierdo, como el pliegue de una revista.
+   pointer-events: none deja pasar los clics a las fotos. */
+.magazine-viewer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(90deg, rgba(0, 0, 0, .22), rgba(0, 0, 0, 0) 5%);
+}
+
+/* Fila con las dos páginas. El scroll horizontal queda oculto y "scroll-snap"
+   hace que siempre se detenga en una página entera. */
 .shooting-track {
   display: flex;
   height: 100%;
@@ -433,39 +822,179 @@ main, .events, .shootings, .about, .contact { max-width: 1400px; margin: 0 auto;
   scrollbar-width: none; /* oculta la barra de scroll (Firefox) */
 }
 .shooting-track::-webkit-scrollbar { display: none; } /* oculta la barra (Chrome, Safari) */
-.shooting-slide { flex: 0 0 100%; height: 100%; scroll-snap-align: start; overflow: hidden; }
-.shooting-slide img { width: 100%; height: 100%; object-fit: cover; display: block; cursor: zoom-in; }
-/* Diapositiva del collage: 4 imágenes en cuadrícula 2×2 con una separación fina. */
-.shooting-slide.collage {
+.shooting-slide { position: relative; flex: 0 0 100%; height: 100%; scroll-snap-align: start; overflow: hidden; }
+.shooting-slide img { display: block; width: 100%; height: 100%; object-fit: cover; cursor: zoom-in; }
+
+/* Página 1: portada. Los textos van encima de la foto, con un degradado oscuro
+   arriba y abajo para que se lean sobre cualquier imagen. */
+.cover-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 26px 28px 48px;
+  color: var(--on-photo);
+  background: linear-gradient(rgba(0, 0, 0, .38), rgba(0, 0, 0, 0) 28%, rgba(0, 0, 0, 0) 58%, rgba(0, 0, 0, .5));
+  pointer-events: none;
+}
+/* Cabecera: "SHOOTING" en grande, como el logotipo de una revista. */
+.cover-masthead {
+  margin: 0;
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: clamp(2.4rem, 10vw, 4.2rem);
+  line-height: .9;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  text-align: center;
+}
+/* Subtítulo sobre el titular, en mayúsculas pequeñas y espaciadas. */
+.cover-kicker {
+  margin: 0 0 6px;
+  font-size: .64rem;
+  letter-spacing: .32em;
+  text-transform: uppercase;
+}
+.cover-kicker:empty { display: none; }
+.cover-title {
+  margin: 0;
+  font-family: var(--serif);
+  font-weight: 300;
+  font-style: italic;
+  font-size: clamp(1.8rem, 6vw, 2.6rem);
+  line-height: 1.05;
+}
+
+/* Página 2: página interior con márgenes, el collage 2×2 y el folio abajo. */
+.magazine-page {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 26px 26px 18px;
+  background: var(--bg);
+}
+.collage-grid {
+  flex: 1;
+  min-height: 0; /* permite que la cuadrícula encoja dentro de la página */
   display: grid;
   grid-template-columns: 1fr 1fr;
   grid-template-rows: 1fr 1fr;
-  gap: 4px;
-  background: var(--bg);
+  gap: 8px;
 }
-.shooting-slide.collage img { min-height: 0; transition: transform 1.2s cubic-bezier(.2, .7, .2, 1); }
-.shooting-slide.collage img:hover { transform: scale(1.04); }
-/* Flechas ‹ › sobre la imagen, a media altura. */
+.collage-grid img { min-height: 0; transition: transform 1.2s cubic-bezier(.2, .7, .2, 1); }
+.collage-grid img:hover { transform: scale(1.03); }
+/* Folio: el pie de página de las revistas (título y número de página). */
+.folio {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: .6rem;
+  letter-spacing: .28em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.folio span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Descripción debajo de la revista, centrada, como un pie de foto. */
+.magazine-caption {
+  max-width: 440px;
+  margin: 64px auto 0;
+  text-align: center;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 1.15rem;
+  color: var(--muted);
+  white-space: pre-line;
+}
+.magazine-caption:empty { display: none; }
+
+/* Botones de editar y borrar (solo en modo edición): encima de la revista,
+   fuera de la portada, para no tapar la cabecera. */
+.magazine .delete {
+  position: absolute;
+  top: -48px; right: 0;
+  z-index: 2;
+  width: 34px; height: 34px;
+  border: none;
+  border-radius: 50%;
+  background: var(--bg);
+  color: var(--danger);
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
+.magazine .edit-btn {
+  position: absolute;
+  top: -48px; right: 42px;
+  z-index: 2;
+  height: 34px;
+  padding: 0 16px;
+  border: none;
+  border-radius: 999px;
+  background: var(--bg);
+  color: var(--ink);
+  font: 400 .62rem var(--sans);
+  letter-spacing: .24em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.magazine .edit-btn { border: 1px solid var(--line); }
+.magazine .delete { border: 1px solid var(--line); }
+.magazine .edit-btn:hover { background: var(--ink); color: var(--bg); }
+
+/* Flechas ‹ › sobre la página, a media altura. */
+/* El icono (SVG) se centra en el círculo con flexbox. */
 .slide-btn {
   position: absolute;
   top: 50%;
+  z-index: 1;
   transform: translateY(-50%);
-  width: 40px;
-  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  padding: 0;
   border: none;
   border-radius: 50%;
-  background: color-mix(in srgb, var(--bg) 85%, transparent);
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
   color: var(--ink);
-  font: 300 1.6rem/1 var(--serif);
+  cursor: pointer;
+  box-shadow: 0 4px 14px var(--shadow);
+  transition: background .3s, color .3s;
+}
+.slide-btn:hover { background: var(--ink); color: var(--bg); }
+.slide-btn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.slide-btn.prev { left: 14px; }
+.slide-btn.next { right: 14px; }
+
+/* Botón "Quitar página" en cada página del collage (solo en modo edición). */
+.remove-page-btn {
+  position: absolute;
+  top: 34px;
+  right: 34px;
+  z-index: 1;
+  padding: 7px 12px;
+  border: none;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bg) 90%, transparent);
+  color: var(--danger);
+  font: 400 .58rem var(--sans);
+  letter-spacing: .2em;
+  text-transform: uppercase;
   cursor: pointer;
   box-shadow: 0 4px 14px var(--shadow);
 }
-.slide-btn.prev { left: 12px; }
-.slide-btn.next { right: 12px; }
-/* Puntitos que indican la diapositiva visible. */
-.dots { position: absolute; bottom: 14px; left: 0; right: 0; display: flex; justify-content: center; gap: 8px; pointer-events: none; }
-.dot { width: 6px; height: 6px; border-radius: 50%; background: var(--on-photo); opacity: .5; box-shadow: 0 0 4px rgba(0, 0, 0, .4); }
-.dot.active { opacity: 1; }
+.remove-page-btn:hover { background: var(--danger); color: var(--bg); }
+/* Puntitos que indican la página visible: debajo de la revista, fuera de las
+   páginas, para que no tapen el folio ni se pierdan sobre fondos claros. */
+.dots { position: absolute; bottom: -36px; left: 0; right: 0; display: flex; justify-content: center; gap: 8px; pointer-events: none; }
+.dot { width: 6px; height: 6px; border-radius: 50%; background: var(--ink); opacity: .25; transition: opacity .3s; }
+.dot.active { opacity: .9; }
+
+/* Aviso "solo se permite un shooting" (modo edición). */
+.limit-note { margin: 0 0 0 auto; align-self: center; font-size: .8rem; color: var(--muted); }
 
 /* --- Sobre mí --- */
 .bio {
@@ -606,7 +1135,13 @@ footer {
   .hero-text { padding-block: 40px 16px; }
   .upload { grid-template-columns: 1fr; padding: 20px; }
   .links a { display: none; }
-  main, .events, .shootings, .about, .contact { padding-top: 80px; }
+  main, .events, .polaroids, .shootings, .about, .contact { padding-top: 80px; }
+  .polaroids-grid { gap: 20px 14px; }
+  .sheet-credits { gap: 10px; }
+  .sheet-credits dt { font-size: .64rem; }
+  .sheet-logo { max-width: 80px; max-height: 44px; }
+  .polaroid { border-width: 8px; }
+  .polaroid-empty { border-width: 2px; padding: 6px; }
   .section-head { flex-wrap: wrap; }
   .lightbox figure { padding: 56px 16px 24px; }
   .fab-stack { right: 16px; bottom: 16px; }
