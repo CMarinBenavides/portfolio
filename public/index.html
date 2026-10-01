@@ -43,10 +43,10 @@
       <button id="theme-btn" class="icon-btn" aria-label="Activar modo oscuro"></button>
     </div>
     <div class="links">
-      <a href="#portafolio">Portafolio</a>
       <a href="#about">Sobre mí</a>
       <a href="#eventos">Eventos</a>
       <a href="#polaroids">Polaroids</a>
+      <a href="#proceso">Proceso</a>
       <a href="#shootings">Shootings</a>
       <a href="#contact">Contacto</a>
     </div>
@@ -58,7 +58,7 @@
       <p id="tagline" class="eyebrow"></p>
       <h1 id="name">Portafolio Lyda</h1>
       <p id="location" class="location"></p>
-      <a href="#portafolio" class="scroll-cue">Ver portafolio</a>
+      <a href="#about" class="scroll-cue">Ver portafolio</a>
     </div>
     <div class="hero-image" id="hero-image">
       <span class="placeholder">Tu foto principal aparecerá aquí</span>
@@ -70,46 +70,26 @@
     <dl id="stats"></dl>
   </section>
 
-  <main id="portafolio">
-    <div class="section-head">
-      <span class="section-num">01</span>
-      <h2>Portafolio</h2>
-    </div>
+  <main>
 
-    <!-- Formulario para subir fotos. Solo se ve en modo edición.
-         Las clases dropzone, previews, drop-text y msg las usa app.js
-         (el formulario de eventos tiene la misma estructura). -->
-    <form id="upload-form" class="upload hidden">
-      <div class="dropzone-wrap">
-        <label class="dropzone">
-          <input type="file" name="image" accept="image/jpeg,image/png,image/webp,image/gif" required>
-          <div class="previews"></div>
-          <span class="drop-text">Arrastra una fotografía aquí<br>o haz clic para elegirla</span>
-        </label>
-        <!-- Botón para elegir las fotos desde Google Drive (app.js lo muestra si está configurado). -->
-        <button type="button" class="drive-btn hidden">Desde Google Drive</button>
-      </div>
-      <div class="fields">
-        <p class="eyebrow">Nueva fotografía</p>
-        <input type="text" name="title" placeholder="Título · ej. Vogue Editorial" maxlength="100">
-        <textarea name="description" placeholder="Descripción · fotógrafo, marca, año…" maxlength="500" rows="3"></textarea>
-        <button type="submit" class="btn">Subir</button>
-        <p class="msg" role="status"></p>
-      </div>
-    </form>
-
-    <!-- Galería: app.js crea aquí una tarjeta por cada foto. -->
-    <p id="empty" class="empty hidden">Aún no hay fotografías. Pulsa <em>Editar</em> para subir la primera.</p>
-    <section id="gallery" class="gallery"></section>
-  </main>
-
-  <!-- Biografía ("bio" en config.json). -->
+  <!-- Biografía: la de config.json o, si se editó desde la página, la guardada
+       en Cloudinary. En modo edición se puede cambiar con «Editar texto». -->
   <section class="about" id="about">
     <div class="section-head">
-      <span class="section-num">02</span>
+      <span class="section-num">01</span>
       <h2>Sobre mí</h2>
+      <!-- Solo visible en modo edición. -->
+      <button id="edit-bio-btn" class="btn btn-outline hidden">Editar texto</button>
     </div>
     <p id="bio" class="bio"></p>
+    <form id="bio-form" class="bio-form hidden">
+      <textarea name="bio" maxlength="2000" rows="7" placeholder="Escribe aquí tu presentación…"></textarea>
+      <div class="form-actions">
+        <button type="submit" class="btn">Guardar</button>
+        <button type="button" class="btn btn-outline" id="cancel-bio-btn">Cancelar</button>
+      </div>
+      <p class="msg" role="status"></p>
+    </form>
   </section>
 
   <!-- Eventos: cada uno se muestra como una hoja de portafolio (cabecera,
@@ -117,7 +97,7 @@
        Si no hay ninguno, app.js muestra el aviso "No hay eventos registrados". -->
   <section class="events" id="eventos">
     <div class="section-head">
-      <span class="section-num">03</span>
+      <span class="section-num">02</span>
       <h2>Eventos</h2>
       <!-- Solo visible en modo edición: abre el formulario de nuevo evento. -->
       <button id="add-event-btn" class="btn btn-outline hidden">+ Añadir evento</button>
@@ -190,7 +170,7 @@
        Si no hay ninguna, app.js muestra "No hay polaroids registradas". -->
   <section class="polaroids" id="polaroids">
     <div class="section-head">
-      <span class="section-num">04</span>
+      <span class="section-num">03</span>
       <h2>Polaroids</h2>
       <!-- Solo visible en modo edición y mientras queden huecos libres. -->
       <button id="add-polaroid-btn" class="btn btn-outline hidden">+ Añadir polaroids</button>
@@ -220,6 +200,47 @@
 
     <p id="polaroids-empty" class="empty hidden"></p>
     <div id="polaroids-grid" class="polaroids-grid"></div>
+  </section>
+
+  <!-- Proceso: todas las fotos que se quieran, mostradas como una revista (como
+       el shooting): la primera es la portada y cada una de las demás ocupa
+       una página. En modo edición: formulario para subir fotos (varias a la
+       vez) y un organizador para ordenarlas, editar sus textos o borrarlas.
+       La foto principal del inicio se elige desde la propia foto del inicio. -->
+  <section class="process" id="proceso">
+    <div class="section-head">
+      <span class="section-num">04</span>
+      <h2>Proceso</h2>
+    </div>
+
+    <!-- Formulario para subir fotos. Solo se ve en modo edición.
+         Las clases dropzone, previews, drop-text y msg las usa app.js. -->
+    <form id="upload-form" class="upload hidden">
+      <div class="dropzone-wrap">
+        <label class="dropzone">
+          <!-- "multiple": se pueden elegir varias fotos a la vez (hasta 20 por subida). -->
+          <input type="file" name="image" accept="image/jpeg,image/png,image/webp,image/gif" multiple data-max="20" required>
+          <div class="previews"></div>
+          <span class="drop-text">Arrastra las fotografías aquí<br>o haz clic para elegirlas (varias a la vez)</span>
+        </label>
+        <!-- Botón para elegir las fotos desde Google Drive (app.js lo muestra si está configurado). -->
+        <button type="button" class="drive-btn hidden">Desde Google Drive</button>
+      </div>
+      <div class="fields">
+        <p class="eyebrow">Nuevas fotografías</p>
+        <input type="text" name="title" placeholder="Título (opcional) · ej. Vogue Editorial" maxlength="100">
+        <textarea name="description" placeholder="Descripción (opcional) · fotógrafo, marca, año…" maxlength="500" rows="3"></textarea>
+        <p class="hint">Se añaden al final de la revista. El título y la descripción se aplican a todas las que subas; luego puedes cambiarlos uno por uno con el lápiz.</p>
+        <button type="submit" class="btn">Subir</button>
+        <p class="msg" role="status"></p>
+      </div>
+    </form>
+
+    <p id="empty" class="empty hidden"></p>
+    <div id="process-list" class="shootings-list"></div>
+    <!-- Organizador (solo en modo edición): miniaturas en orden, con botones
+         para moverlas, editar sus textos o borrarlas. Lo rellena app.js. -->
+    <div id="process-organizer" class="process-organizer hidden"></div>
   </section>
 
   <!-- Shooting: se muestra centrado como una revista. La portada lleva el nombre
@@ -291,8 +312,19 @@
     <a id="email" class="email hidden"></a>
     <nav id="social" class="social" aria-label="Redes sociales"></nav>
   </section>
+  </main>
 
-  <!-- Ventana para editar el título y la descripción de una foto de la galería
+  <!-- Menú para elegir la foto principal del inicio entre las fotos del
+       Proceso. Se abre con el botón «Cambiar foto» de la propia foto del inicio. -->
+  <dialog id="cover-picker" class="cover-picker">
+    <div class="cover-picker-head">
+      <p class="eyebrow">Elegir la foto principal</p>
+      <button type="button" class="close" id="cover-picker-close" aria-label="Cerrar">×</button>
+    </div>
+    <div id="cover-picker-grid" class="cover-picker-grid"></div>
+  </dialog>
+
+  <!-- Ventana para editar el título y la descripción de una foto del Proceso
        ya publicada (modo edición). app.js la rellena y la abre. -->
   <dialog id="text-editor" class="text-editor">
     <form method="dialog" id="text-form">

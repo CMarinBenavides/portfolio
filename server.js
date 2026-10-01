@@ -10,13 +10,15 @@
  *
  * Rutas de la API:
  *   GET    /api/config             → nombre, biografía, medidas y redes (data/config.json)
+ *   PUT    /api/config/bio         → cambia el texto de "Sobre mí" { bio } (requiere contraseña)
  *   POST   /api/login              → comprueba la contraseña de administrador
  *
- *   GET    /api/images             → lista de fotos de la galería
- *   POST   /api/images             → sube una foto              (requiere contraseña)
+ *   GET    /api/images             → lista de fotos del Proceso (en su orden)
+ *   POST   /api/images             → sube una o varias fotos (hasta 20 a la vez) (requiere contraseña)
+ *   PUT    /api/images/order       → cambia el orden { ids: [...] } (requiere contraseña)
  *   PUT    /api/images/:id         → edita su título y descripción (requiere contraseña)
  *   DELETE /api/images/:id         → la borra                   (requiere contraseña)
- *   PUT    /api/images/:id/cover   → la marca como portada      (requiere contraseña)
+ *   PUT    /api/images/:id/cover   → la elige como foto principal del inicio (requiere contraseña)
  *   PUT    /api/images/:id/focus   → guarda su encuadre en la portada { x, y, zoom } (requiere contraseña)
  *
  *   GET    /api/events             → lista de eventos (de 1 a 3 fotos con leyenda, logo, textos y créditos)
@@ -145,12 +147,14 @@ const toPublic = ({ publicId, ...image }) => image;
  *   coll        → operaciones de Cloudinary de la colección (storage.gallery o storage.polaroids)
  *   max         → número máximo de imágenes de la colección (las polaroids son 4);
  *                 si no se indica, no hay límite
- *   ordered     → si el orden lo decide la persona (polaroids) en vez de la fecha;
+ *   ordered     → si el orden lo decide la persona en vez de la fecha;
  *                 añade la ruta PUT /order para cambiarlo
+ *   perUpload   → cuántas imágenes se pueden subir de una vez (por defecto, el
+ *                 máximo de la colección, o 1 si no tiene máximo)
  *
  * Devuelve getItems(), para que otras rutas (como la de portada) usen la misma caché.
  */
-function collectionRoutes(router, coll, { max = 0, ordered = false } = {}) {
+function collectionRoutes(router, coll, { max = 0, ordered = false, perUpload = max || 1 } = {}) {
   // En las colecciones con orden propio, la lista se ordena por la posición
   // guardada ("order"); las que no la tengan van al final, de la más antigua a la más nueva.
   const byOrder = (a, b) =>
@@ -164,9 +168,8 @@ function collectionRoutes(router, coll, { max = 0, ordered = false } = {}) {
     res.json((await getItems()).map(toPublic));
   });
 
-  // Se pueden enviar varias imágenes de una vez solo si la colección tiene un
-  // máximo (las polaroids); la galería y los eventos reciben una sola.
-  router.post('/', requireAdmin, upload.array('image', max || 1), async (req, res) => {
+  // Se pueden enviar varias imágenes de una vez (hasta "perUpload").
+  router.post('/', requireAdmin, upload.array('image', perUpload), async (req, res) => {
     const files = req.files || [];
     if (!files.length) return res.status(400).json({ error: 'No se recibió ninguna imagen' });
 
@@ -268,9 +271,34 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Datos del perfil. Se leen del archivo en cada petición para que los cambios
 // en config.json se vean sin reiniciar el servidor.
+// Los ajustes editados desde la página (en Cloudinary, ver lib/cloudinary.js)
+// tienen prioridad sobre config.json.
 app.get('/api/config', async (req, res) => {
   const config = JSON.parse(await fs.readFile(CONFIG_FILE, 'utf8'));
-  res.json({ ...config, google: googleConfig() });
+  const settings = await getSettings();
+  res.json({ ...config, ...settings, google: googleConfig() });
+});
+
+// Ajustes editables desde la página. Se piden a Cloudinary una sola vez y se
+// guardan en memoria (como las listas de fotos).
+const getSettings = createCache(() => storage.getSettings());
+
+// Cambiar el texto de "Sobre mí". Recibe JSON { bio }. Si se deja vacío, se
+// vuelve a usar el de config.json.
+const BIO_MAX = 2000;
+app.put('/api/config/bio', requireAdmin, express.json(), async (req, res) => {
+  const bio = String(req.body?.bio ?? '').trim().slice(0, BIO_MAX);
+  const current = await getSettings();
+  const settings = { ...current };
+  if (bio) settings.bio = bio;
+  else delete settings.bio;
+  await storage.saveSettings(settings);
+  // Actualizamos la copia en memoria (es el mismo objeto que guarda la caché).
+  Object.keys(current).forEach((key) => delete current[key]);
+  Object.assign(current, settings);
+  // Devolvemos el texto que se verá ahora (el de config.json si se dejó vacío).
+  const config = JSON.parse(await fs.readFile(CONFIG_FILE, 'utf8'));
+  res.json({ ok: true, bio: bio || config.bio || '' });
 });
 
 /**
@@ -288,9 +316,11 @@ function googleConfig() {
 // Solo sirve para que la página compruebe la contraseña al entrar en modo edición.
 app.post('/api/login', requireAdmin, (req, res) => res.json({ ok: true }));
 
-// Galería de fotos, con la ruta extra para elegir la portada.
+// Fotos del "Proceso" (se muestran como una revista), con la ruta extra para
+// elegir la foto principal del inicio. El orden lo decide la persona y se
+// pueden subir hasta 20 de una vez (sin límite total).
 const imagesRouter = express.Router();
-const getImages = collectionRoutes(imagesRouter, storage.gallery);
+const getImages = collectionRoutes(imagesRouter, storage.gallery, { ordered: true, perUpload: 20 });
 imagesRouter.put('/:id/cover', requireAdmin, async (req, res) => {
   const images = await getImages();
   const image = images.find((img) => img.id === req.params.id);

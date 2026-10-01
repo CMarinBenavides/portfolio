@@ -29,7 +29,7 @@ const ICONS = {
 // Contraseña del modo edición. Se guarda en sessionStorage para no pedirla en
 // cada recarga; se borra sola al cerrar la pestaña.
 let adminPassword = sessionStorage.getItem('adminPassword');
-let images = []; // lista de fotos recibida del servidor
+let images = []; // fotos del Proceso recibidas del servidor (en orden)
 let lightboxItems = []; // fotos que se recorren en el visor (galería o un shooting)
 let current = 0; // posición de la foto abierta en el visor
 let shootingsCount = 0; // cuántos shootings hay (solo se permite uno)
@@ -133,20 +133,27 @@ async function loadConfig() {
 }
 
 // ---------------------------------------------------------------------------
-// Galería y portada
+// Fotos del Proceso y foto principal del inicio
 // ---------------------------------------------------------------------------
 
-// Pide la lista de fotos y vuelve a pintar la galería y la portada.
+// Pide la lista de fotos del Proceso y vuelve a pintar la revista, el
+// organizador (en modo edición) y la foto principal del inicio.
 async function loadImages() {
-  images = await fetch('/api/images').then((r) => r.json());
+  [images] = await Promise.all([
+    fetch('/api/images').then((r) => r.json()),
+    configReady, // esperamos al nombre, que va en la portada de la revista
+  ]);
 
-  // La portada es la elegida en modo edición o, si no hay ninguna, la foto más
-  // antigua (la última de la lista, porque vienen de la más nueva a la más vieja).
-  const cover = images.find((img) => img.cover) || images.at(-1);
+  // La foto principal es la elegida en modo edición o, si no hay ninguna, la
+  // primera del Proceso.
+  const cover = images.find((img) => img.cover) || images[0];
 
+  $('#empty').textContent = adminPassword
+    ? 'Aún no hay fotografías. Súbelas con el formulario de arriba.'
+    : 'Aún no hay fotografías del proceso.';
   $('#empty').classList.toggle('hidden', images.length > 0);
-  $('#gallery').replaceChildren(...images.map((image) => card(image, image === cover)));
-
+  $('#process-list').replaceChildren(...(images.length ? [processMagazine(images)] : []));
+  renderProcessOrganizer(cover);
   renderHero(cover);
 }
 
@@ -172,20 +179,55 @@ const applyFocus = (img, focus) => {
   img.style.scale = zoom === 1 ? '' : String(zoom);
 };
 
-// Pinta la foto principal. En modo edición añade el botón "Ajustar encuadre".
+// Pinta la foto principal. En modo edición añade los botones "Cambiar foto"
+// (menú para elegirla entre las fotos del Proceso) y "Ajustar encuadre".
 function renderHero(cover) {
   heroCover = cover;
   const frame = $('#hero-image');
   if (!cover) {
-    frame.replaceChildren(el('span', { class: 'placeholder', text: 'Tu foto principal aparecerá aquí' }));
+    frame.replaceChildren(el('span', {
+      class: 'placeholder',
+      text: adminPassword
+        ? 'Sube fotos en la sección Proceso para elegir aquí la foto principal'
+        : 'Tu foto principal aparecerá aquí',
+    }));
     return;
   }
   // draggable="false" evita que el navegador intente arrastrar la imagen como archivo.
   const img = el('img', { src: cover.full, alt: cover.title || '', draggable: 'false' });
   applyFocus(img, cover.focus);
   frame.replaceChildren(img);
-  if (adminPassword) frame.append(adjustButton(adjustHero));
+  if (adminPassword) {
+    const change = el('button', { class: 'adjust-btn', text: 'Cambiar foto' });
+    change.addEventListener('click', openCoverPicker);
+    frame.append(el('div', { class: 'hero-tools' }, [change, adjustButton(adjustHero)]));
+  }
 }
+
+// Menú para elegir la foto principal: todas las fotos del Proceso en miniatura;
+// la actual aparece marcada. Al elegir una, se guarda y se abre el ajuste de encuadre.
+function openCoverPicker() {
+  $('#cover-picker-grid').replaceChildren(...images.map((image) => {
+    const current = image === heroCover;
+    const option = el('button', {
+      type: 'button',
+      class: `cover-option${current ? ' current' : ''}`,
+      'aria-label': current ? 'Foto principal actual' : `Usar ${image.title || 'esta foto'} como foto principal`,
+    }, [el('img', { src: image.thumb, alt: '', loading: 'lazy' })]);
+    if (current) option.append(el('span', { text: '★ Actual' }));
+    option.addEventListener('click', () => {
+      $('#cover-picker').close();
+      if (!current) setCover(image);
+    });
+    return option;
+  }));
+  $('#cover-picker').showModal();
+}
+$('#cover-picker-close').addEventListener('click', () => $('#cover-picker').close());
+// Clic fuera del menú (en el fondo oscuro) → cerrar.
+$('#cover-picker').addEventListener('click', (e) => {
+  if (e.target === e.currentTarget) e.currentTarget.close();
+});
 
 // Abre el modo de ajuste para la foto principal.
 const adjustHero = () => startAdjust({ frame: $('#hero-image'), item: heroCover, endpoint: '/api/images' });
@@ -323,45 +365,75 @@ function startAdjust({ frame, item, endpoint }) {
   }, { signal });
 }
 
-// Crea la tarjeta de una foto de la galería. En modo edición le añade los
-// botones de borrar, de editar sus textos y de elegir como portada.
-function card(image, isCover) {
-  // loading="lazy": el navegador solo descarga la foto cuando está a punto de
-  // verse al hacer scroll, así la página carga antes.
-  const img = el('img', { src: image.thumb, alt: image.title || 'Imagen del portafolio', loading: 'lazy' });
-  const figure = el('figure', { class: 'card', tabindex: '0' }, [img]);
-  if (image.title) figure.append(el('figcaption', { text: image.title }));
+// ---------------------------------------------------------------------------
+// Proceso: las fotos como una revista
+// ---------------------------------------------------------------------------
+// Página 1: portada con la primera foto, la cabecera "Proceso" y el nombre.
+// Después, una página por cada foto, con su pie de página.
 
-  if (adminPassword) {
-    const del = el('button', { class: 'delete', 'aria-label': 'Eliminar imagen', text: '×' });
-    del.addEventListener('click', (e) => {
-      e.stopPropagation(); // evita que el clic abra también el visor
-      deleteImage(image);
-    });
+function processMagazine(list) {
+  // Cada foto abre el visor en su posición, con su título y descripción.
+  const photo = (img, index) => {
+    const image = el('img', { src: img.thumb, alt: img.title || 'Foto del proceso', loading: 'lazy' });
+    image.addEventListener('click', () => openLightbox(list, index));
+    return image;
+  };
+  const [first, ...rest] = list;
 
-    const coverBtn = el('button', {
-      class: `cover-btn${isCover ? ' is-cover' : ''}`,
-      text: isCover ? '★ Portada' : '☆ Usar como portada',
-    });
-    if (isCover) coverBtn.disabled = true;
-    coverBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      setCover(image);
-    });
+  const cover = el('div', { class: 'shooting-slide magazine-cover' }, [
+    photo(first, 0),
+    el('div', { class: 'cover-overlay' }, [
+      el('p', { class: 'cover-masthead', text: 'Proceso' }),
+      el('div', { class: 'cover-lines' }, [
+        el('p', { class: 'cover-kicker', text: '' }), // sin subtítulo (el CSS lo oculta)
+        el('h3', { class: 'cover-title', text: profileFullName }),
+      ]),
+    ]),
+  ]);
 
-    const edit = editButton(() => editTexts({ endpoint: '/api/images', item: image, reload: loadImages }));
-    figure.append(del, edit, coverBtn);
-  }
+  const pages = rest.map((img, p) =>
+    el('div', { class: 'shooting-slide magazine-page' }, [
+      el('div', { class: 'collage-grid count-1' }, [photo(img, p + 1)]), // una foto que llena la página
+      el('div', { class: 'folio' }, [
+        el('span', { text: 'Proceso' }),
+        el('span', { text: String(p + 2).padStart(2, '0') }), // 02, 03, 04…
+      ]),
+    ]));
 
-  // Clic o tecla Enter sobre la foto → abrirla en el visor.
-  const open = () => openLightbox(images, images.indexOf(image));
-  figure.addEventListener('click', open);
-  figure.addEventListener('keydown', (e) => e.key === 'Enter' && open());
-  return figure;
+  return el('article', { class: 'magazine' }, [magazineViewer([cover, ...pages])]);
+}
+
+// Organizador del Proceso (modo edición): una miniatura por foto, en el orden
+// de la revista, con flechas para moverla (o arrastrarla), el lápiz para
+// editar sus textos y × para borrarla. La foto principal lleva una estrella.
+function renderProcessOrganizer(cover) {
+  const box = $('#process-organizer');
+  box.classList.toggle('hidden', !adminPassword || images.length === 0);
+  if (!adminPassword) return box.replaceChildren();
+
+  const move = (from, to) => saveOrder('/api/images', images, from, to, loadImages);
+  box.replaceChildren(
+    el('p', { class: 'eyebrow', text: 'Orden de la revista · arrastra o usa las flechas' }),
+    el('div', { class: 'process-thumbs' }, images.map((image, index) => {
+      const del = el('button', { class: 'delete', 'aria-label': 'Eliminar foto', text: '×' });
+      del.addEventListener('click', () => deleteItem('/api/images', image, loadImages));
+      const edit = editButton(() => editTexts({ endpoint: '/api/images', item: image, reload: loadImages }));
+      const thumb = el('figure', { class: 'process-thumb' }, [
+        el('img', { src: image.thumb, alt: image.title || '', loading: 'lazy', draggable: 'false' }),
+        orderButtons(images.length, index, (to) => move(index, to)),
+        edit,
+        del,
+      ]);
+      if (image === cover) thumb.append(el('span', { class: 'cover-badge', text: '★ Principal', title: 'Foto principal del inicio' }));
+      if (image.title) thumb.append(el('figcaption', { text: image.title }));
+      makeDraggable(thumb, { group: 'process', index, move: (from) => move(from, index) });
+      return thumb;
+    })),
+  );
 }
 
 // ---------------------------------------------------------------------------
-// Editar el título y la descripción de una foto de la galería
+// Editar el título y la descripción de una foto del Proceso
 // ---------------------------------------------------------------------------
 
 const PENCIL = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4zM14 6l4 4"/></svg>';
@@ -427,6 +499,86 @@ $('#text-form').addEventListener('submit', async (e) => {
   $('#text-editor').close();
   reload();
 });
+
+// ---------------------------------------------------------------------------
+// Cambiar el orden de las imágenes (polaroids y Proceso, en modo edición)
+// ---------------------------------------------------------------------------
+// Dos formas: arrastrar una imagen encima de otra (con el ratón) o usar las
+// flechas ‹ › de cada una (cómodas también en el móvil). El cambio se guarda al momento.
+
+/**
+ * Mueve la imagen de la posición "from" a la posición "to" y guarda el orden.
+ *   endpoint → '/api/polaroids' o '/api/images'
+ *   all      → la lista actual, en orden
+ *   reload   → función que vuelve a pintar la sección
+ */
+async function saveOrder(endpoint, all, from, to, reload) {
+  if (from === to || to < 0 || to >= all.length) return;
+  const ids = all.map((item) => item.id);
+  const [moved] = ids.splice(from, 1);
+  ids.splice(to, 0, moved);
+  const res = await fetch(`${endpoint}/order`, {
+    method: 'PUT',
+    headers: { 'x-admin-password': adminPassword, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ids }),
+  });
+  if (!res.ok) alert((await res.json()).error);
+  reload();
+}
+
+// Flechas para mover una imagen un puesto antes o después, con su número de
+// posición en medio. "move(to)" se llama con la posición de destino.
+function orderButtons(count, index, move) {
+  const button = (text, label, to) => {
+    const b = el('button', { class: 'order-btn', type: 'button', text, 'aria-label': label, title: label });
+    b.disabled = to < 0 || to >= count;
+    b.addEventListener('click', (e) => {
+      e.stopPropagation(); // que no se abra el visor
+      move(to);
+    });
+    return b;
+  };
+  return el('div', { class: 'order-btns' }, [
+    button('‹', 'Mover antes', index - 1),
+    el('span', { text: String(index + 1) }),
+    button('›', 'Mover después', index + 1),
+  ]);
+}
+
+// Arrastrar y soltar (HTML5 drag and drop).
+//   group → nombre del grupo: solo se puede soltar sobre imágenes del mismo grupo
+//   index → posición de esta imagen
+//   busy  → función que dice si ahora no se debe arrastrar (p. ej. al encuadrar)
+//   move  → se llama con la posición de la imagen que se soltó encima de esta
+let dragging = null; // { group, index } de la imagen que se está arrastrando
+
+function makeDraggable(frame, { group, index, busy = () => false, move }) {
+  frame.draggable = true;
+  frame.addEventListener('dragstart', (e) => {
+    if (busy()) return e.preventDefault();
+    dragging = { group, index };
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', ''); // Firefox solo arrastra si hay algún dato
+    frame.classList.add('dragging');
+  });
+  frame.addEventListener('dragend', () => {
+    dragging = null;
+    frame.classList.remove('dragging');
+  });
+  frame.addEventListener('dragover', (e) => {
+    // Solo aceptamos imágenes del mismo grupo (no, por ejemplo, archivos
+    // arrastrados desde el computador).
+    if (dragging?.group !== group) return;
+    e.preventDefault(); // necesario para que el navegador permita soltar aquí
+    frame.classList.add('drop-target');
+  });
+  frame.addEventListener('dragleave', () => frame.classList.remove('drop-target'));
+  frame.addEventListener('drop', (e) => {
+    e.preventDefault();
+    frame.classList.remove('drop-target');
+    if (dragging?.group === group) move(dragging.index);
+  });
+}
 
 // ---------------------------------------------------------------------------
 // Visor de fotos a pantalla completa
@@ -496,8 +648,6 @@ async function deleteItem(endpoint, item, reload) {
   reload();
 }
 
-const deleteImage = (image) => deleteItem('/api/images', image, loadImages);
-
 // Activa (con contraseña) o desactiva (con null) el modo edición.
 function setAdmin(password) {
   adminPassword = password;
@@ -506,7 +656,9 @@ function setAdmin(password) {
   $('#upload-form').classList.toggle('hidden', !password);
   // Botones "+ Añadir…" de Eventos y Shootings (y cerrar sus formularios al salir).
   $('#add-event-btn').classList.toggle('hidden', !password);
+  $('#edit-bio-btn').classList.toggle('hidden', !password);
   if (!password) {
+    toggleBioForm(false);
     toggleEventForm(false);
     togglePolaroidForm(false);
     toggleShootingForm(false);
@@ -520,6 +672,51 @@ function setAdmin(password) {
   // Al entrar en modo edición, precargamos las librerías de Google Drive (si está configurado).
   if (password && googleConfig) loadGoogle().catch(() => {});
 }
+
+// ---------------------------------------------------------------------------
+// Editar el texto de "Sobre mí" (modo edición)
+// ---------------------------------------------------------------------------
+// El texto se cambia en el mismo sitio: se oculta el párrafo y aparece un
+// cuadro de texto con el contenido actual. Los saltos de línea se respetan.
+
+function toggleBioForm(open) {
+  const form = $('#bio-form');
+  form.classList.toggle('hidden', !open);
+  $('#bio').classList.toggle('hidden', open);
+  $('#edit-bio-btn').classList.toggle('hidden', open || !adminPassword);
+  form.querySelector('.msg').textContent = '';
+  if (open) {
+    form.elements.bio.value = $('#bio').textContent;
+    form.elements.bio.focus();
+  }
+}
+
+$('#edit-bio-btn').addEventListener('click', () => toggleBioForm(true));
+$('#cancel-bio-btn').addEventListener('click', () => toggleBioForm(false));
+
+$('#bio-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const form = e.target;
+  const msg = form.querySelector('.msg');
+  const submit = form.querySelector('button[type=submit]');
+  submit.disabled = true;
+  msg.className = 'msg';
+  msg.textContent = 'Guardando…';
+  const res = await fetch('/api/config/bio', {
+    method: 'PUT',
+    headers: { 'x-admin-password': adminPassword, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ bio: form.elements.bio.value }),
+  });
+  submit.disabled = false;
+  if (!res.ok) {
+    msg.className = 'msg error';
+    msg.textContent = (await res.json()).error;
+    if (res.status === 401) setAdmin(null); // la contraseña cambió: salimos del modo edición
+    return;
+  }
+  $('#bio').textContent = (await res.json()).bio;
+  toggleBioForm(false);
+});
 
 // ---------------------------------------------------------------------------
 // Menú desplegable de las iniciales
@@ -701,9 +898,10 @@ function setupUploadForm(form, { endpoint, successText, onSuccess, prepare }) {
   });
 }
 
+// Formulario para subir fotos al Proceso (una o varias a la vez).
 setupUploadForm($('#upload-form'), {
   endpoint: '/api/images',
-  successText: 'Fotografía subida',
+  successText: 'Fotografías subidas',
   onSuccess: loadImages,
 });
 
@@ -1007,80 +1205,22 @@ function polaroidFrame(polaroid, all, index) {
       e.stopPropagation(); // que no se abra el visor
       deleteItem('/api/polaroids', polaroid, loadPolaroids);
     });
-    frame.append(del, orderButtons(all, index));
+    frame.append(del, orderButtons(all.length, index, (to) => movePolaroid(all, index, to)));
     photo.append(adjustButton(() => startAdjust({ frame: photo, item: polaroid, endpoint: '/api/polaroids' })));
-    makeDraggable(frame, photo, all, index);
+    // Mientras se encuadra la foto, el arrastre se desactiva para no
+    // confundirlo con mover la imagen dentro del marco.
+    makeDraggable(frame, {
+      group: 'polaroids',
+      index,
+      busy: () => photo.classList.contains('adjusting'),
+      move: (from) => movePolaroid(all, from, index),
+    });
   }
   return frame;
 }
 
-// --- Cambiar el orden de las polaroids (modo edición) ---
-// Dos formas: arrastrar una polaroid encima de otra (con el ratón) o usar las
-// flechas ‹ › de cada una (cómodas también en el móvil). El cambio se guarda al momento.
-
 // Mueve la polaroid de la posición "from" a la posición "to" y guarda el orden.
-async function movePolaroid(all, from, to) {
-  if (from === to || to < 0 || to >= all.length) return;
-  const ids = all.map((p) => p.id);
-  const [moved] = ids.splice(from, 1);
-  ids.splice(to, 0, moved);
-  const res = await fetch('/api/polaroids/order', {
-    method: 'PUT',
-    headers: { 'x-admin-password': adminPassword, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ids }),
-  });
-  if (!res.ok) alert((await res.json()).error);
-  loadPolaroids();
-}
-
-// Flechas para mover una polaroid un puesto antes o después.
-function orderButtons(all, index) {
-  const button = (text, label, to) => {
-    const b = el('button', { class: 'order-btn', type: 'button', text, 'aria-label': label, title: label });
-    b.disabled = to < 0 || to >= all.length;
-    b.addEventListener('click', (e) => {
-      e.stopPropagation(); // que no se abra el visor
-      movePolaroid(all, index, to);
-    });
-    return b;
-  };
-  return el('div', { class: 'order-btns' }, [
-    button('‹', 'Mover antes', index - 1),
-    el('span', { text: String(index + 1) }), // número de posición
-    button('›', 'Mover después', index + 1),
-  ]);
-}
-
-// Arrastrar y soltar (HTML5 drag and drop). Mientras se encuadra una foto, el
-// arrastre está desactivado para no confundirlo con mover la imagen dentro del marco.
-let polaroidDragFrom = null; // posición de la polaroid que se está arrastrando
-
-function makeDraggable(frame, photo, all, index) {
-  frame.draggable = true;
-  frame.addEventListener('dragstart', (e) => {
-    if (photo.classList.contains('adjusting')) return e.preventDefault();
-    polaroidDragFrom = index;
-    e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', ''); // Firefox solo arrastra si hay algún dato
-    frame.classList.add('dragging');
-  });
-  frame.addEventListener('dragend', () => {
-    polaroidDragFrom = null;
-    frame.classList.remove('dragging');
-  });
-  frame.addEventListener('dragover', (e) => {
-    // Solo aceptamos polaroids (no, por ejemplo, archivos arrastrados desde el computador).
-    if (polaroidDragFrom === null) return;
-    e.preventDefault(); // necesario para que el navegador permita soltar aquí
-    frame.classList.add('drop-target');
-  });
-  frame.addEventListener('dragleave', () => frame.classList.remove('drop-target'));
-  frame.addEventListener('drop', (e) => {
-    e.preventDefault();
-    frame.classList.remove('drop-target');
-    if (polaroidDragFrom !== null) movePolaroid(all, polaroidDragFrom, index);
-  });
-}
+const movePolaroid = (all, from, to) => saveOrder('/api/polaroids', all, from, to, loadPolaroids);
 
 const togglePolaroidForm = (open) => {
   toggleForm($('#polaroid-form'), $('#add-polaroid-btn'), open);
@@ -1143,6 +1283,40 @@ async function removeShootingPage(shooting, page) {
 }
 
 /**
+ * Visor de una "revista": las páginas ("slides") en una fila que se desplaza
+ * de una en una, con flechas y un puntito por página. Lo usan el shooting y
+ * el Proceso.
+ */
+function magazineViewer(slides) {
+  const track = el('div', { class: 'shooting-track' }, slides);
+  const total = slides.length;
+
+  // Flechas (iconos SVG, para que queden perfectamente centradas en el círculo)
+  // y un puntito por página. Cada flecha desplaza la fila un ancho de página.
+  const arrow = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg>`;
+  const prev = el('button', { class: 'slide-btn prev', 'aria-label': 'Página anterior' });
+  const next = el('button', { class: 'slide-btn next', 'aria-label': 'Página siguiente' });
+  prev.innerHTML = arrow('M15 5l-7 7 7 7');
+  next.innerHTML = arrow('M9 5l7 7-7 7');
+  const dots = Array.from({ length: total }, () => el('span', { class: 'dot' }));
+  prev.addEventListener('click', () => track.scrollBy({ left: -track.clientWidth }));
+  next.addEventListener('click', () => track.scrollBy({ left: track.clientWidth }));
+
+  // Al desplazarse (con flechas o con el dedo), actualizamos qué punto está
+  // activo y ocultamos la flecha que ya no lleva a ningún sitio.
+  function updateControls() {
+    const page = Math.round(track.scrollLeft / track.clientWidth) || 0;
+    dots.forEach((dot, i) => dot.classList.toggle('active', i === page));
+    prev.classList.toggle('hidden', page === 0);
+    next.classList.toggle('hidden', page >= total - 1);
+  }
+  track.addEventListener('scroll', updateControls, { passive: true });
+  requestAnimationFrame(updateControls); // estado inicial, cuando ya tiene tamaño
+
+  return el('div', { class: 'magazine-viewer' }, [track, prev, next, el('div', { class: 'dots' }, dots)]);
+}
+
+/**
  * Crea el shooting con forma de revista. Es un pequeño carrusel de "páginas":
  *   1. la portada: foto a sangre, con "SHOOTING" como cabecera (como el
  *      logotipo de una revista) y el subtítulo y el título como titular;
@@ -1198,33 +1372,8 @@ function shootingMagazine(shooting) {
     return page;
   });
 
-  const track = el('div', { class: 'shooting-track' }, [cover, ...pages]);
-  const total = 1 + pages.length; // portada + páginas interiores
-
-  // Flechas (iconos SVG, para que queden perfectamente centradas en el círculo)
-  // y un puntito por página. Cada flecha desplaza la fila un ancho de página.
-  const arrow = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg>`;
-  const prev = el('button', { class: 'slide-btn prev', 'aria-label': 'Página anterior' });
-  const next = el('button', { class: 'slide-btn next', 'aria-label': 'Página siguiente' });
-  prev.innerHTML = arrow('M15 5l-7 7 7 7');
-  next.innerHTML = arrow('M9 5l7 7-7 7');
-  const dots = Array.from({ length: total }, () => el('span', { class: 'dot' }));
-  prev.addEventListener('click', () => track.scrollBy({ left: -track.clientWidth }));
-  next.addEventListener('click', () => track.scrollBy({ left: track.clientWidth }));
-
-  // Al desplazarse (con flechas o con el dedo), actualizamos qué punto está
-  // activo y ocultamos la flecha que ya no lleva a ningún sitio.
-  function updateControls() {
-    const page = Math.round(track.scrollLeft / track.clientWidth);
-    dots.forEach((dot, i) => dot.classList.toggle('active', i === page));
-    prev.classList.toggle('hidden', page === 0);
-    next.classList.toggle('hidden', page === total - 1);
-  }
-  track.addEventListener('scroll', updateControls, { passive: true });
-  requestAnimationFrame(updateControls); // estado inicial, cuando ya tiene tamaño
-
   const magazine = el('article', { class: 'magazine' }, [
-    el('div', { class: 'magazine-viewer' }, [track, prev, next, el('div', { class: 'dots' }, dots)]),
+    magazineViewer([cover, ...pages]),
     // La descripción va debajo, centrada, como el pie de foto de una revista.
     el('p', { class: 'magazine-caption', text: shooting.description }),
   ]);

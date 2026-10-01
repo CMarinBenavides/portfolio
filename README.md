@@ -1,6 +1,6 @@
 # Portafolio
 
-Portafolio web de modelo con galería de fotos, eventos, polaroids, shootings, ficha de medidas, redes sociales y modo claro/oscuro. Incluye un modo de edición protegido por contraseña para subir y borrar fotos, publicar eventos (hojas de portafolio con 1 a 3 fotos, créditos y logo), polaroids (hasta 4 fotos con marco) y shootings (portada + collage de 4 imágenes), y elegir la portada.
+Portafolio web de modelo con eventos, polaroids, proceso (fotos en forma de revista), shootings, ficha de medidas, redes sociales y modo claro/oscuro. Incluye un modo de edición protegido por contraseña para subir y borrar fotos, publicar eventos (hojas de portafolio con 1 a 3 fotos, créditos y logo), polaroids (hasta 4 fotos con marco) y shootings (portada + collage de 4 imágenes), y elegir la foto principal del inicio.
 
 Las fotos se guardan en [Cloudinary](https://cloudinary.com), un servicio de imágenes en la nube con plan gratuito. Así las fotos no se pierden al reiniciar o actualizar el hosting, y cada visitante recibe una versión optimizada: más pequeña y en el formato más ligero que admita su navegador.
 
@@ -66,29 +66,31 @@ Edita [data/config.json](data/config.json):
 | `name`     | Nombre completo (se muestra en dos líneas en la portada)               |
 | `tagline`  | Lema sobre el nombre                                                    |
 | `location` | Ciudad                                                                  |
-| `bio`      | Texto de "Sobre mí"                                                     |
+| `bio`      | Texto de "Sobre mí" (se puede cambiar desde la página, ver abajo)      |
 | `email`    | Correo de contacto                                                      |
 | `github`   | Enlace del botón flotante de GitHub (bórralo para ocultar el botón)     |
 | `stats`    | Medidas; puedes añadir o quitar las que quieras                         |
 | `social`   | Redes sociales. Tienen icono: Instagram, Facebook, X y TikTok           |
 
+En modo edición, la sección **Sobre mí** tiene el botón **Editar texto**: el texto se cambia en el mismo sitio (los saltos de línea se respetan) y se guarda en Cloudinary como un pequeño archivo de ajustes (`portfolio/ajustes.json`), para que no se pierda si el hosting reinicia. Mientras no lo edites, se usa el `bio` de `config.json`; si lo guardas vacío, se vuelve a usar ese.
+
 Cada evento se muestra como una hoja de portafolio: cabecera con el nombre, «Portfolio» y el año; logo del evento (opcional); título, fecha y detalle; hasta 3 columnas de créditos (p. ej. diseñador / marca, accesorios, bolsos); una descripción opcional; y abajo de **1 a 3 fotos** una al lado de otra, cada una con su leyenda y el lugar donde se tomó.
 
 En modo edición, la sección **Eventos** muestra el botón **+ Añadir evento**, y cada hoja tiene los botones **Editar** (textos, créditos, leyendas, quitar o añadir fotos y cambiar o quitar el logo) y **Eliminar**. Si no hay eventos, los visitantes ven el aviso «No hay eventos registrados». Cada foto (de los eventos, las polaroids y la foto principal) tiene el botón **Ajustar encuadre** en modo edición, para arrastrarla y elegir qué parte se ve, y acercarla con el zoom (barra deslizante o rueda del ratón, hasta 3×).
 
-En modo edición, las fotos de la galería tienen un botón con un **lápiz** (junto a la ×) para cambiar su título y descripción después de publicarlos. El shooting se edita con su propio botón **Editar** (título, subtítulo y descripción).
+La sección **Proceso** admite cualquier cantidad de fotos y las muestra como una revista: la primera es la portada (con «PROCESO» como cabecera y el nombre como titular) y cada una de las demás ocupa una página completa (02, 03…). En modo edición se pueden subir varias fotos a la vez (hasta 20 por subida, desde el computador o Google Drive), que se añaden al final; debajo de la revista aparece el **organizador**, con una miniatura por foto para cambiar el orden (arrastrando o con las flechas **‹ ›**), editar su título y descripción con el **lápiz** o borrarla con **×**. El shooting se edita con su propio botón **Editar** (título, subtítulo y descripción).
 
 La sección **Polaroids** muestra hasta 4 fotos con marco negro en una cuadrícula de 2 × 2. En modo edición, los huecos libres aparecen como marcos punteados: al pulsarlos (o **+ Añadir polaroids**) se pueden subir las que falten, una o varias a la vez, desde el computador o Google Drive. Cada polaroid tiene los botones **×** (borrar) y **Ajustar encuadre**. Para cambiar el orden, arrastra una polaroid encima de otra o usa las flechas **‹ ›** de su esquina; el orden se guarda al momento.
 
 La sección **Shootings** admite **un solo shooting** a la vez (para publicar otro hay que borrar el actual). Lleva título, subtítulo (opcional), descripción, una portada y un collage en **páginas de 4 imágenes**: al publicarlo se eligen 4, 8, 12… imágenes (hasta 20 de una vez) y cada 4 forman una página. Se muestra centrado con forma de revista: la portada lleva "SHOOTING" como cabecera y el subtítulo y el título como titular, y con las flechas (o deslizando en el móvil) se pasa por las páginas 02, 03… En modo edición, **Editar** permite cambiar los textos y la portada y **añadir páginas** nuevas al final (hasta 10 en total), y cada página tiene el botón **Quitar página** (siempre queda al menos una). Al editar también aparece el **organizador del collage**: se pueden arrastrar las imágenes (o moverlas con ‹ ›) para cambiar su orden o pasarlas a otra página, quitar imágenes sueltas y crear páginas vacías. Para guardar, cada página debe tener exactamente 4 imágenes; si no, se muestra un aviso con las páginas que no cumplen.
 
-La portada es la foto marcada con **Usar como portada** en modo edición. Si no marcas ninguna, se usa la foto más antigua. En modo edición, el botón **Ajustar encuadre** de la foto principal permite arrastrarla para elegir qué parte se ve (al elegir una nueva portada se abre automáticamente); el encuadre se guarda en Cloudinary.
+La foto principal del inicio se elige desde la propia foto: en modo edición tiene el botón **Cambiar foto**, que abre un menú con todas las fotos del Proceso (la actual aparece marcada). Si no eliges ninguna, se usa la primera del Proceso. El botón **Ajustar encuadre** permite arrastrarla y acercarla para elegir qué parte se ve (al elegir una nueva foto se abre automáticamente); el encuadre se guarda en Cloudinary.
 
 ## Estructura
 
 ```
 server.js                      Servidor Express y API
-lib/cloudinary.js              Conexión con Cloudinary (galería, eventos, polaroids y shootings)
+lib/cloudinary.js              Conexión con Cloudinary (proceso, eventos, polaroids y shootings)
 scripts/migrar-fotos-locales.js  Pasa las fotos locales antiguas a Cloudinary
 data/config.json               Datos del perfil
 public/                        Página web (HTML, CSS y JavaScript)
@@ -100,12 +102,14 @@ public/                        Página web (HTML, CSS y JavaScript)
 | Método | Ruta                    | Descripción                                |
 | ------ | ----------------------- | ------------------------------------------ |
 | GET    | /api/config             | Datos del perfil                           |
-| GET    | /api/images             | Lista de fotos                             |
+| PUT    | /api/config/bio         | Cambia el texto de "Sobre mí", JSON `{ bio }` (vacío = volver al de config.json) (requiere contraseña) |
+| GET    | /api/images             | Lista de fotos del Proceso, en su orden    |
 | POST   | /api/login              | Comprueba la contraseña                    |
-| POST   | /api/images             | Sube una foto (requiere contraseña)        |
+| POST   | /api/images             | Sube una o varias fotos en el campo `image` (hasta 20 a la vez) (requiere contraseña) |
+| PUT    | /api/images/order       | Cambia el orden, JSON `{ ids: [...] }` con todos los ids en el orden nuevo (requiere contraseña) |
 | PUT    | /api/images/:id         | Edita el título y la descripción, JSON `{ title, description }` (requiere contraseña) |
-| PUT    | /api/images/:id/cover   | La marca como portada (requiere contraseña) |
-| PUT    | /api/images/:id/focus   | Guarda su encuadre en la portada, JSON `{ x, y, zoom }` (x e y en %, zoom de 1 a 3) (requiere contraseña) |
+| PUT    | /api/images/:id/cover   | La elige como foto principal del inicio (requiere contraseña) |
+| PUT    | /api/images/:id/focus   | Guarda su encuadre como foto principal, JSON `{ x, y, zoom }` (x e y en %, zoom de 1 a 3) (requiere contraseña) |
 | GET    | /api/events             | Lista de eventos (fotos con leyenda, logo, textos y créditos) |
 | POST   | /api/events             | Publica un evento: `images` (1 a 3), `legend0`/`place0`…, `logo` opcional, `title` (obligatorio), `date`, `detail`, `description`, `credit1Label`/`credit1Value`… (requiere contraseña) |
 | PUT    | /api/events/:id         | Edita un evento: los mismos campos, más `keep` (JSON con las fotos que se conservan y su leyenda) y `removeLogo` (requiere contraseña) |
